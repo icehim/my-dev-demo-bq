@@ -22,8 +22,8 @@ import "element-plus/dist/index.css";
 import "./assets/iconfont/iconfont.js";
 import "./assets/iconfont/iconfont.css";
 
-import 'leaflet/dist/leaflet.css';
-import 'mars2d/mars2d.css';
+import "leaflet/dist/leaflet.css";
+import "mars2d/mars2d.css";
 
 const app = createApp(App);
 
@@ -54,6 +54,10 @@ import "tippy.js/dist/tippy.css";
 import "tippy.js/themes/light.css";
 import VueTippy from "vue-tippy";
 app.use(VueTippy);
+
+//全局注册VueKonva
+import VueKonva from "vue-konva";
+app.use(VueKonva);
 
 getPlatformConfig(app).then(async config => {
   setupStore(app);
