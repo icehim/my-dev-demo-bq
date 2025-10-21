@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import Motion from "./utils/motion";
-import { useRouter } from "vue-router";
-import { message } from "@/utils/message";
-import { loginRules } from "./utils/rule";
-import { ref, reactive, toRaw } from "vue";
-import { debounce } from "@pureadmin/utils";
-import { useNav } from "@/layout/hooks/useNav";
-import { useEventListener } from "@vueuse/core";
-import type { FormInstance } from "element-plus";
-import { useLayout } from "@/layout/hooks/useLayout";
-import { useUserStoreHook } from "@/store/modules/user";
-import { initRouter, getTopMenu } from "@/router/utils";
-import { bg, avatar, illustration } from "./utils/static";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
-import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import Motion from './utils/motion';
+import { useRouter } from 'vue-router';
+import { message } from '@/utils/message';
+import { loginRules } from './utils/rule';
+import { ref, reactive, toRaw } from 'vue';
+import { debounce } from '@pureadmin/utils';
+import { useNav } from '@/layout/hooks/useNav';
+import { useEventListener } from '@vueuse/core';
+import type { FormInstance } from 'element-plus';
+import { useLayout } from '@/layout/hooks/useLayout';
+import { useUserStoreHook } from '@/store/modules/user';
+import { initRouter, getTopMenu } from '@/router/utils';
+import { bg, avatar, illustration } from './utils/static';
+import { useRenderIcon } from '@/components/ReIcon/src/hooks';
+import { useDataThemeChange } from '@/layout/hooks/useDataThemeChange';
 
-import dayIcon from "@/assets/svg/day.svg?component";
-import darkIcon from "@/assets/svg/dark.svg?component";
-import Lock from "~icons/ri/lock-fill";
-import User from "~icons/ri/user-3-fill";
+import dayIcon from '@/assets/svg/day.svg?component';
+import darkIcon from '@/assets/svg/dark.svg?component';
+import Lock from '~icons/ri/lock-fill';
+import User from '~icons/ri/user-3-fill';
 
 defineOptions({
-  name: "Login"
+  name: 'Login'
 });
 
 const router = useRouter();
@@ -37,8 +37,8 @@ dataThemeChange(overallStyle.value);
 const { title } = useNav();
 
 const ruleForm = reactive({
-  username: "admin",
-  password: "admin123"
+  username: 'admin',
+  password: 'admin123'
 });
 
 const onLogin = async (formEl: FormInstance | undefined) => {
@@ -59,12 +59,12 @@ const onLogin = async (formEl: FormInstance | undefined) => {
               router
                 .push(getTopMenu(true).path)
                 .then(() => {
-                  message("登录成功", { type: "success" });
+                  message('登录成功', { type: 'success' });
                 })
                 .finally(() => (disabled.value = false));
             });
           } else {
-            message("登录失败", { type: "error" });
+            message('登录失败', { type: 'error' });
           }
         })
         .finally(() => (loading.value = false));
@@ -78,9 +78,9 @@ const immediateDebounce: any = debounce(
   true
 );
 
-useEventListener(document, "keydown", ({ code }) => {
+useEventListener(document, 'keydown', ({ code }) => {
   if (
-    ["Enter", "NumpadEnter"].includes(code) &&
+    ['Enter', 'NumpadEnter'].includes(code) &&
     !disabled.value &&
     !loading.value
   )
@@ -170,7 +170,7 @@ useEventListener(document, "keydown", ({ code }) => {
 </template>
 
 <style scoped>
-@import url("@/style/login.css");
+@import url('@/style/login.css');
 </style>
 
 <style lang="scss" scoped>

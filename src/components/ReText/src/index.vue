@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from "vue";
-import { type TippyOptions, type TippyContent, useTippy } from "vue-tippy";
+import { h, onMounted, ref } from 'vue';
+import { type TippyOptions, type TippyContent, useTippy } from 'vue-tippy';
 
 defineOptions({
-  name: "ReText"
+  name: 'ReText'
 });
 
 const props = defineProps({

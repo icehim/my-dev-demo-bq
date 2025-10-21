@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import LayFrame from "../lay-frame/index.vue";
-import LayFooter from "../lay-footer/index.vue";
-import { useTags } from "@/layout/hooks/useTag";
-import { useGlobal, isNumber } from "@pureadmin/utils";
-import BackTopIcon from "@/assets/svg/back_top.svg?component";
-import { h, computed, Transition, defineComponent } from "vue";
-import { usePermissionStoreHook } from "@/store/modules/permission";
+import LayFrame from '../lay-frame/index.vue';
+import LayFooter from '../lay-footer/index.vue';
+import { useTags } from '@/layout/hooks/useTag';
+import { useGlobal, isNumber } from '@pureadmin/utils';
+import BackTopIcon from '@/assets/svg/back_top.svg?component';
+import { h, computed, Transition, defineComponent } from 'vue';
+import { usePermissionStoreHook } from '@/store/modules/permission';
 
 const props = defineProps({
   fixedHeader: Boolean
@@ -37,37 +37,37 @@ const stretch = computed(() => {
 });
 
 const layout = computed(() => {
-  return $storage?.layout.layout === "vertical";
+  return $storage?.layout.layout === 'vertical';
 });
 
 const getMainWidth = computed(() => {
   return isNumber(stretch.value)
-    ? stretch.value + "px"
+    ? stretch.value + 'px'
     : stretch.value
-      ? "1440px"
-      : "100%";
+      ? '1440px'
+      : '100%';
 });
 
 const getSectionStyle = computed(() => {
   return [
-    hideTabs.value && layout ? "padding-top: 48px;" : "",
+    hideTabs.value && layout ? 'padding-top: 48px;' : '',
     !hideTabs.value && layout
-      ? showModel.value == "chrome"
-        ? "padding-top: 85px;"
-        : "padding-top: 81px;"
-      : "",
-    hideTabs.value && !layout.value ? "padding-top: 48px;" : "",
+      ? showModel.value == 'chrome'
+        ? 'padding-top: 85px;'
+        : 'padding-top: 81px;'
+      : '',
+    hideTabs.value && !layout.value ? 'padding-top: 48px;' : '',
     !hideTabs.value && !layout.value
-      ? showModel.value == "chrome"
-        ? "padding-top: 85px;"
-        : "padding-top: 81px;"
-      : "",
+      ? showModel.value == 'chrome'
+        ? 'padding-top: 85px;'
+        : 'padding-top: 81px;'
+      : '',
     props.fixedHeader
-      ? ""
+      ? ''
       : `padding-top: 0;${
           hideTabs.value
-            ? "min-height: calc(100vh - 48px);"
-            : "min-height: calc(100vh - 86px);"
+            ? 'min-height: calc(100vh - 48px);'
+            : 'min-height: calc(100vh - 86px);'
         }`
   ];
 });
@@ -81,20 +81,20 @@ const transitionMain = defineComponent({
   },
   render() {
     const transitionName =
-      transitions.value(this.route)?.name || "fade-transform";
+      transitions.value(this.route)?.name || 'fade-transform';
     const enterTransition = transitions.value(this.route)?.enterTransition;
     const leaveTransition = transitions.value(this.route)?.leaveTransition;
     return h(
       Transition,
       {
-        name: enterTransition ? "pure-classes-transition" : transitionName,
+        name: enterTransition ? 'pure-classes-transition' : transitionName,
         enterActiveClass: enterTransition
           ? `animate__animated ${enterTransition}`
           : undefined,
         leaveActiveClass: leaveTransition
           ? `animate__animated ${leaveTransition}`
           : undefined,
-        mode: "out-in",
+        mode: 'out-in',
         appear: true
       },
       {
@@ -208,6 +208,8 @@ const transitionMain = defineComponent({
 }
 
 .main-content {
-  margin: 24px;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
 }
 </style>

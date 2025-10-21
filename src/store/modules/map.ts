@@ -1,6 +1,6 @@
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
 
-export const useMapStore = defineStore("map", {
+export const useMapStore = defineStore('map', {
   state: () => ({
     map: null
   }),

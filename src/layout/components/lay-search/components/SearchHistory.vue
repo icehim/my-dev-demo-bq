@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import Sortable from "sortablejs";
-import SearchHistoryItem from "./SearchHistoryItem.vue";
-import type { optionsItem, dragItem, Props } from "../types";
-import { useEpThemeStoreHook } from "@/store/modules/epTheme";
-import { useResizeObserver, isArray, delay } from "@pureadmin/utils";
-import { ref, watch, nextTick, computed, getCurrentInstance } from "vue";
+import Sortable from 'sortablejs';
+import SearchHistoryItem from './SearchHistoryItem.vue';
+import type { optionsItem, dragItem, Props } from '../types';
+import { useEpThemeStoreHook } from '@/store/modules/epTheme';
+import { useResizeObserver, isArray, delay } from '@pureadmin/utils';
+import { ref, watch, nextTick, computed, getCurrentInstance } from 'vue';
 
 interface Emits {
-  (e: "update:value", val: string): void;
-  (e: "enter"): void;
-  (e: "collect", val: optionsItem): void;
-  (e: "delete", val: optionsItem): void;
-  (e: "drag", val: dragItem): void;
+  (e: 'update:value', val: string): void;
+  (e: 'enter'): void;
+  (e: 'collect', val: optionsItem): void;
+  (e: 'delete', val: optionsItem): void;
+  (e: 'drag', val: dragItem): void;
 }
 
 const historyRef = ref();
@@ -27,9 +27,9 @@ const itemStyle = computed(() => {
   return item => {
     return {
       background:
-        item?.path === active.value ? useEpThemeStoreHook().epThemeColor : "",
-      color: item.path === active.value ? "#fff" : "",
-      fontSize: item.path === active.value ? "16px" : "14px"
+        item?.path === active.value ? useEpThemeStoreHook().epThemeColor : '',
+      color: item.path === active.value ? '#fff' : '',
+      fontSize: item.path === active.value ? '16px' : '14px'
     };
   };
 });
@@ -46,7 +46,7 @@ const active = computed({
     return props.value;
   },
   set(val: string) {
-    emit("update:value", val);
+    emit('update:value', val);
   }
 });
 
@@ -62,20 +62,20 @@ watch(
 );
 
 const historyList = computed(() => {
-  return props.options.filter(item => item.type === "history");
+  return props.options.filter(item => item.type === 'history');
 });
 
 const collectList = computed(() => {
-  return props.options.filter(item => item.type === "collect");
+  return props.options.filter(item => item.type === 'collect');
 });
 
 function handleCollect(item) {
-  emit("collect", item);
+  emit('collect', item);
 }
 
 function handleDelete(item) {
   stopMouseEvent.value = true;
-  emit("delete", item);
+  emit('delete', item);
 }
 
 /** 鼠标移入 */
@@ -84,7 +84,7 @@ async function handleMouse(item) {
 }
 
 function handleTo() {
-  emit("enter");
+  emit('enter');
 }
 
 function resizeResult() {
@@ -105,7 +105,7 @@ function handleScroll(index: number) {
 }
 
 const handleChangeIndex = (evt): void => {
-  emit("drag", { oldIndex: evt.oldIndex, newIndex: evt.newIndex });
+  emit('drag', { oldIndex: evt.oldIndex, newIndex: evt.newIndex });
 };
 
 let sortableInstance = null;
@@ -116,15 +116,15 @@ watch(
     if (val.length > 1) {
       nextTick(() => {
         const wrapper: HTMLElement =
-          document.querySelector(".collect-container");
+          document.querySelector('.collect-container');
         if (!wrapper || sortableInstance) return;
         sortableInstance = Sortable.create(wrapper, {
           animation: 160,
           onStart: event => {
-            event.item.style.cursor = "move";
+            event.item.style.cursor = 'move';
           },
           onEnd: event => {
-            event.item.style.cursor = "pointer";
+            event.item.style.cursor = 'pointer';
           },
           onUpdate: handleChangeIndex
         });
@@ -160,7 +160,7 @@ defineExpose({ handleScroll });
     </template>
     <template v-if="collectList.length">
       <div :style="titleStyle">
-        {{ `收藏${collectList.length > 1 ? "（可拖拽排序）" : ""}` }}
+        {{ `收藏${collectList.length > 1 ? '（可拖拽排序）' : ''}` }}
       </div>
       <div class="collect-container">
         <div

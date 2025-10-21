@@ -5,14 +5,14 @@ import {
   type DialogOptions,
   closeDialog,
   dialogStore
-} from "./index";
-import { ref, computed } from "vue";
-import { isFunction } from "@pureadmin/utils";
-import Fullscreen from "~icons/ri/fullscreen-fill";
-import ExitFullscreen from "~icons/ri/fullscreen-exit-fill";
+} from './index';
+import { ref, computed } from 'vue';
+import { isFunction } from '@pureadmin/utils';
+import Fullscreen from '~icons/ri/fullscreen-fill';
+import ExitFullscreen from '~icons/ri/fullscreen-exit-fill';
 
 defineOptions({
-  name: "ReDialog"
+  name: 'ReDialog'
 });
 
 const sureBtnMap = ref({});
@@ -24,12 +24,12 @@ const footerButtons = computed(() => {
       ? options.footerButtons
       : ([
           {
-            label: "取消",
+            label: '取消',
             text: true,
             bg: true,
             btnClick: ({ dialog: { options, index } }) => {
               const done = () =>
-                closeDialog(options, index, { command: "cancel" });
+                closeDialog(options, index, { command: 'cancel' });
               if (options?.beforeCancel && isFunction(options?.beforeCancel)) {
                 options.beforeCancel(done, { options, index });
               } else {
@@ -38,8 +38,8 @@ const footerButtons = computed(() => {
             }
           },
           {
-            label: "确定",
-            type: "primary",
+            label: '确定',
+            type: 'primary',
             text: true,
             bg: true,
             popconfirm: options?.popconfirm,
@@ -60,7 +60,7 @@ const footerButtons = computed(() => {
               };
               const done = () => {
                 closeLoading();
-                closeDialog(options, index, { command: "sure" });
+                closeDialog(options, index, { command: 'sure' });
               };
               if (options?.beforeSure && isFunction(options?.beforeSure)) {
                 options.beforeSure(done, { options, index, closeLoading });
@@ -75,11 +75,11 @@ const footerButtons = computed(() => {
 
 const fullscreenClass = computed(() => {
   return [
-    "el-icon",
-    "el-dialog__close",
-    "-translate-x-2",
-    "cursor-pointer",
-    "hover:text-[red]!"
+    'el-icon',
+    'el-dialog__close',
+    '-translate-x-2',
+    'cursor-pointer',
+    'hover:text-[red]!'
   ];
 });
 
@@ -98,10 +98,10 @@ function eventsCallBack(
 function handleClose(
   options: DialogOptions,
   index: number,
-  args = { command: "close" }
+  args = { command: 'close' }
 ) {
   closeDialog(options, index, args);
-  eventsCallBack("close", options, index);
+  eventsCallBack('close', options, index);
 }
 </script>
 

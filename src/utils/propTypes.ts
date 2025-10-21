@@ -1,10 +1,10 @@
-import type { CSSProperties, VNodeChild } from "vue";
+import type { CSSProperties, VNodeChild } from 'vue';
 import {
   createTypes,
   toValidableType,
   type VueTypesInterface,
   type VueTypeValidableDef
-} from "vue-types";
+} from 'vue-types';
 
 export type VueNode = VNodeChild | JSX.Element;
 
@@ -26,13 +26,13 @@ const newPropTypes = createTypes({
 export default class propTypes extends newPropTypes {
   // a native-like validator that supports the `.validable` method
   static get style() {
-    return toValidableType("style", {
+    return toValidableType('style', {
       type: [String, Object]
     });
   }
 
   static get VNodeChild() {
-    return toValidableType("VNodeChild", {
+    return toValidableType('VNodeChild', {
       type: undefined
     });
   }

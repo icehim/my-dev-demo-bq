@@ -9,21 +9,21 @@
 </template>
 
 <script setup lang="ts" name="Popup">
-import { ref, onMounted, onBeforeUnmount } from "vue";
-import { useMapStore } from "@/store/modules/map";
-import Overlay from "ol/Overlay";
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useMapStore } from '@/store/modules/map';
+import Overlay from 'ol/Overlay';
 
-import { MapView } from "@/components/MapView";
+import { MapView } from '@/components/MapView';
 
 const mapStore = useMapStore();
 
 const popupEl = ref(null); // 弹窗 DOM
 const overlay = ref(null); // overlay 实例
-const currentCoordinate = ref(""); // 当前坐标
+const currentCoordinate = ref(''); // 当前坐标
 
 const closePopup = () => {
   overlay.value?.setPosition(undefined);
-  currentCoordinate.value = "";
+  currentCoordinate.value = '';
 };
 
 onMounted(() => {
@@ -38,7 +38,7 @@ onMounted(() => {
   map.addOverlay(overlay.value);
 
   // 点击事件
-  map.on("singleclick", evt => {
+  map.on('singleclick', evt => {
     const coordinate = evt.coordinate;
     currentCoordinate.value = coordinate;
     overlay.value.setPosition(coordinate);
@@ -55,32 +55,32 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .popup {
-  width: 400px;
-  height: 50px;
-  background: rgba(63, 72, 84, 0.8);
   position: absolute;
   top: -70px;
   left: -200px;
   box-sizing: border-box;
+  width: 400px;
+  height: 50px;
   padding: 10px;
+  background: rgb(63 72 84 / 80%);
 
   &::after {
-    content: "";
-    display: block;
-    width: 0;
-    height: 0;
-    border-left: 15px solid transparent;
-    border-right: 15px solid transparent;
-    border-bottom: 15px solid rgba(63, 72, 84, 0.8);
     position: absolute;
     bottom: -14px;
     left: 50%;
+    display: block;
+    width: 0;
+    height: 0;
+    content: '';
+    border-right: 15px solid transparent;
+    border-bottom: 15px solid rgb(63 72 84 / 80%);
+    border-left: 15px solid transparent;
     transform: translateX(-50%) rotate(180deg);
   }
 
   .icon-close {
     position: absolute;
-    top: 0px;
+    top: 0;
     right: 8px;
     cursor: pointer;
   }

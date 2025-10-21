@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { noticesData } from "./data";
-import NoticeList from "./components/NoticeList.vue";
-import BellIcon from "~icons/ep/bell";
+import { ref, computed } from 'vue';
+import { noticesData } from './data';
+import NoticeList from './components/NoticeList.vue';
+import BellIcon from '~icons/ep/bell';
 
 const noticesNum = ref(0);
 const notices = ref(noticesData);
@@ -12,7 +12,7 @@ notices.value.map(v => (noticesNum.value += v.list.length));
 
 const getLabel = computed(
   () => item =>
-    item.name + (item.list.length > 0 ? `(${item.list.length})` : "")
+    item.name + (item.list.length > 0 ? `(${item.list.length})` : '')
 );
 </script>
 

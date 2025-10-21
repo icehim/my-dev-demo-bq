@@ -1,14 +1,14 @@
-import { ref } from "vue";
-import reDialog from "./index.vue";
-import { useTimeoutFn } from "@vueuse/core";
-import { withInstall } from "@pureadmin/utils";
+import { ref } from 'vue';
+import reDialog from './index.vue';
+import { useTimeoutFn } from '@vueuse/core';
+import { withInstall } from '@pureadmin/utils';
 import type {
   EventType,
   ArgsType,
   DialogProps,
   ButtonProps,
   DialogOptions
-} from "./type";
+} from './type';
 
 const dialogStore = ref<Array<DialogOptions>>([]);
 
@@ -42,7 +42,7 @@ const closeDialog = (options: DialogOptions, index: number, args?: any) => {
  * @param key 属性，默认`title`
  * @param index 弹框索引（默认`0`，代表只有一个弹框，对于嵌套弹框要改哪个弹框的属性值就把该弹框索引赋给`index`）
  */
-const updateDialog = (value: any, key = "title", index = 0) => {
+const updateDialog = (value: any, key = 'title', index = 0) => {
   dialogStore.value[index][key] = value;
 };
 

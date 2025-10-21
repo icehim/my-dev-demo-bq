@@ -1,12 +1,12 @@
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
 import {
   store,
   getConfig,
   storageLocal,
   responsiveStorageNameSpace
-} from "../utils";
+} from '../utils';
 
-export const useEpThemeStore = defineStore("pure-epTheme", {
+export const useEpThemeStore = defineStore('pure-epTheme', {
   state: () => ({
     epThemeColor:
       storageLocal().getItem<StorageConfigs>(
@@ -23,10 +23,10 @@ export const useEpThemeStore = defineStore("pure-epTheme", {
     },
     /** 用于mix导航模式下hamburger-svg的fill属性 */
     fill(state) {
-      if (state.epTheme === "light") {
-        return "#409eff";
+      if (state.epTheme === 'light') {
+        return '#409eff';
       } else {
-        return "#fff";
+        return '#fff';
       }
     }
   },

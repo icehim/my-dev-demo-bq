@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-import { emitter } from "@/utils/mitt";
-import { useNav } from "@/layout/hooks/useNav";
-import { responsiveStorageNameSpace } from "@/config";
-import { storageLocal, isAllEmpty } from "@pureadmin/utils";
-import { findRouteByPath, getParentPaths } from "@/router/utils";
-import { usePermissionStoreHook } from "@/store/modules/permission";
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import LaySidebarLogo from "../lay-sidebar/components/SidebarLogo.vue";
-import LaySidebarItem from "../lay-sidebar/components/SidebarItem.vue";
-import LaySidebarLeftCollapse from "../lay-sidebar/components/SidebarLeftCollapse.vue";
-import LaySidebarCenterCollapse from "../lay-sidebar/components/SidebarCenterCollapse.vue";
+import { useRoute } from 'vue-router';
+import { emitter } from '@/utils/mitt';
+import { useNav } from '@/layout/hooks/useNav';
+import { responsiveStorageNameSpace } from '@/config';
+import { storageLocal, isAllEmpty } from '@pureadmin/utils';
+import { findRouteByPath, getParentPaths } from '@/router/utils';
+import { usePermissionStoreHook } from '@/store/modules/permission';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import LaySidebarLogo from '../lay-sidebar/components/SidebarLogo.vue';
+import LaySidebarItem from '../lay-sidebar/components/SidebarItem.vue';
+import LaySidebarLeftCollapse from '../lay-sidebar/components/SidebarLeftCollapse.vue';
+import LaySidebarCenterCollapse from '../lay-sidebar/components/SidebarCenterCollapse.vue';
 
 const route = useRoute();
 const isShow = ref(false);
@@ -32,13 +32,13 @@ const {
 const subMenuData = ref([]);
 
 const menuData = computed(() => {
-  return pureApp.layout === "mix" && device.value !== "mobile"
+  return pureApp.layout === 'mix' && device.value !== 'mobile'
     ? subMenuData.value
     : usePermissionStoreHook().wholeMenus;
 });
 
 const loading = computed(() =>
-  pureApp.layout === "mix" ? false : menuData.value.length === 0 ? true : false
+  pureApp.layout === 'mix' ? false : menuData.value.length === 0 ? true : false
 );
 
 const defaultActive = computed(() =>
@@ -46,7 +46,7 @@ const defaultActive = computed(() =>
 );
 
 function getSubMenuData() {
-  let path = "";
+  let path = '';
   path = defaultActive.value;
   subMenuData.value = [];
   // path的上级路由组成的数组
@@ -66,7 +66,7 @@ function getSubMenuData() {
 watch(
   () => [route.path, usePermissionStoreHook().wholeMenus],
   () => {
-    if (route.path.includes("/redirect")) return;
+    if (route.path.includes('/redirect')) return;
     getSubMenuData();
     menuSelect(route.path);
   }
@@ -75,14 +75,14 @@ watch(
 onMounted(() => {
   getSubMenuData();
 
-  emitter.on("logoChange", key => {
+  emitter.on('logoChange', key => {
     showLogo.value = key;
   });
 });
 
 onBeforeUnmount(() => {
   // 解绑`logoChange`公共事件，防止多次触发
-  emitter.off("logoChange");
+  emitter.off('logoChange');
 });
 </script>
 

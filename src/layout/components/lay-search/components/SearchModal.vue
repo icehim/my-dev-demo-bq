@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { match } from "pinyin-pro";
-import { getConfig } from "@/config";
-import { useRouter } from "vue-router";
-import SearchResult from "./SearchResult.vue";
-import SearchFooter from "./SearchFooter.vue";
-import { useNav } from "@/layout/hooks/useNav";
-import SearchHistory from "./SearchHistory.vue";
-import type { optionsItem, dragItem } from "../types";
-import { ref, computed, shallowRef, watch } from "vue";
-import { useDebounceFn, onKeyStroke } from "@vueuse/core";
-import { usePermissionStoreHook } from "@/store/modules/permission";
-import { cloneDeep, isAllEmpty, storageLocal } from "@pureadmin/utils";
-import SearchIcon from "~icons/ri/search-line";
+import { match } from 'pinyin-pro';
+import { getConfig } from '@/config';
+import { useRouter } from 'vue-router';
+import SearchResult from './SearchResult.vue';
+import SearchFooter from './SearchFooter.vue';
+import { useNav } from '@/layout/hooks/useNav';
+import SearchHistory from './SearchHistory.vue';
+import type { optionsItem, dragItem } from '../types';
+import { ref, computed, shallowRef, watch } from 'vue';
+import { useDebounceFn, onKeyStroke } from '@vueuse/core';
+import { usePermissionStoreHook } from '@/store/modules/permission';
+import { cloneDeep, isAllEmpty, storageLocal } from '@pureadmin/utils';
+import SearchIcon from '~icons/ri/search-line';
 
 interface Props {
   /** 弹窗显隐 */
@@ -19,7 +19,7 @@ interface Props {
 }
 
 interface Emits {
-  (e: "update:value", val: boolean): void;
+  (e: 'update:value', val: boolean): void;
 }
 
 const { device } = useNav();
@@ -28,17 +28,17 @@ const props = withDefaults(defineProps<Props>(), {});
 
 const router = useRouter();
 
-const HISTORY_TYPE = "history";
-const COLLECT_TYPE = "collect";
-const LOCALEHISTORYKEY = "menu-search-history";
-const LOCALECOLLECTKEY = "menu-search-collect";
+const HISTORY_TYPE = 'history';
+const COLLECT_TYPE = 'collect';
+const LOCALEHISTORYKEY = 'menu-search-history';
+const LOCALECOLLECTKEY = 'menu-search-collect';
 
-const keyword = ref("");
+const keyword = ref('');
 const resultRef = ref();
 const historyRef = ref();
 const scrollbarRef = ref();
-const activePath = ref("");
-const historyPath = ref("");
+const activePath = ref('');
+const historyPath = ref('');
 const resultOptions = shallowRef([]);
 const historyOptions = shallowRef([]);
 const handleSearch = useDebounceFn(search, 300);
@@ -55,7 +55,7 @@ const show = computed({
     return props.value;
   },
   set(val: boolean) {
-    emit("update:value", val);
+    emit('update:value', val);
   }
 });
 
@@ -119,7 +119,7 @@ function search() {
       : false
   );
   activePath.value =
-    resultOptions.value?.length > 0 ? resultOptions.value[0].path : "";
+    resultOptions.value?.length > 0 ? resultOptions.value[0].path : '';
 }
 
 function handleClose() {
@@ -127,8 +127,8 @@ function handleClose() {
   /** 延时处理防止用户看到某些操作 */
   setTimeout(() => {
     resultOptions.value = [];
-    historyPath.value = "";
-    keyword.value = "";
+    historyPath.value = '';
+    keyword.value = '';
   }, 200);
 }
 
@@ -177,7 +177,7 @@ function handleDown() {
 /** key enter */
 function handleEnter() {
   const { options, currentPath, isResultOptions } = getCurrentOptionsAndPath();
-  if (options.length === 0 || currentPath === "") return;
+  if (options.length === 0 || currentPath === '') return;
   const index = options.findIndex(item => item.path === currentPath);
   if (index === -1) return;
   if (isResultOptions) {
@@ -264,9 +264,9 @@ function handleDrag(item: dragItem) {
   historyPath.value = reorderedItem.path;
 }
 
-onKeyStroke("Enter", handleEnter);
-onKeyStroke("ArrowUp", handleUp);
-onKeyStroke("ArrowDown", handleDown);
+onKeyStroke('Enter', handleEnter);
+onKeyStroke('ArrowUp', handleUp);
+onKeyStroke('ArrowDown', handleDown);
 </script>
 
 <template>

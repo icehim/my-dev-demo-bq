@@ -1,0 +1,31 @@
+.toolbar {
+  position: absolute;
+  top: 15%;
+  left: 50%;
+  display: flex;
+
+  // width: 300px;
+  height: 60px;
+  padding: 10px 20px;
+  border: 1px solid #dcdfe6;
+  border-radius: 10px;
+  transform: translateX(-50%);
+
+  &-item {
+    padding: 10px;
+    cursor: pointer;
+  }
+
+  .active {
+    background-color: var(--active-bg-color);
+    border-radius: 5px;
+
+    .el-icon {
+      fill: #fff;
+
+      path {
+        fill: #fff;
+      }
+    }
+  }
+}

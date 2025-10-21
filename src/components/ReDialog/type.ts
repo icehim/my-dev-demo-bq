@@ -1,23 +1,23 @@
-import type { CSSProperties, VNode, Component } from "vue";
+import type { CSSProperties, VNode, Component } from 'vue';
 
 type DoneFn = (cancel?: boolean) => void;
 type EventType =
-  | "open"
-  | "close"
-  | "openAutoFocus"
-  | "closeAutoFocus"
-  | "fullscreenCallBack";
+  | 'open'
+  | 'close'
+  | 'openAutoFocus'
+  | 'closeAutoFocus'
+  | 'fullscreenCallBack';
 type ArgsType = {
   /** `cancel` 点击取消按钮、`sure` 点击确定按钮、`close` 点击右上角关闭按钮或空白页或按下了esc键 */
-  command: "cancel" | "sure" | "close";
+  command: 'cancel' | 'sure' | 'close';
 };
 type ButtonType =
-  | "primary"
-  | "success"
-  | "warning"
-  | "danger"
-  | "info"
-  | "text";
+  | 'primary'
+  | 'success'
+  | 'warning'
+  | 'danger'
+  | 'info'
+  | 'text';
 
 /** https://element-plus.org/zh-CN/component/dialog.html#attributes */
 type DialogProps = {
@@ -106,9 +106,9 @@ type ButtonProps = {
   /** 按钮文字 */
   label: string;
   /** 按钮尺寸 */
-  size?: "large" | "default" | "small";
+  size?: 'large' | 'default' | 'small';
   /** 按钮类型 */
-  type?: "primary" | "success" | "warning" | "danger" | "info";
+  type?: 'primary' | 'success' | 'warning' | 'danger' | 'info';
   /** 是否为朴素按钮，默认 `false` */
   plain?: boolean;
   /** 是否为文字按钮，默认 `false` */
@@ -134,7 +134,7 @@ type ButtonProps = {
   /** 是否开启原生 `autofocus` 属性，默认 `false` */
   autofocus?: boolean;
   /** 原生 `type` 属性，默认 `button` */
-  nativeType?: "button" | "submit" | "reset";
+  nativeType?: 'button' | 'submit' | 'reset';
   /** 自动在两个中文字符之间插入空格 */
   autoInsertSpace?: boolean;
   /** 自定义按钮颜色, 并自动计算 `hover` 和 `active` 触发后的颜色 */

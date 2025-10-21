@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { isEqual } from "@pureadmin/utils";
-import { useRoute, useRouter } from "vue-router";
-import { ref, watch, onMounted, toRaw } from "vue";
-import { getParentPaths, findRouteByPath } from "@/router/utils";
-import { useMultiTagsStoreHook } from "@/store/modules/multiTags";
+import { isEqual } from '@pureadmin/utils';
+import { useRoute, useRouter } from 'vue-router';
+import { ref, watch, onMounted, toRaw } from 'vue';
+import { getParentPaths, findRouteByPath } from '@/router/utils';
+import { useMultiTagsStoreHook } from '@/store/modules/multiTags';
 
 const route = useRoute();
 const levelList = ref([]);
@@ -35,14 +35,14 @@ const getBreadcrumb = (): void => {
   const parentRoutes = getParentPaths(
     router.currentRoute.value.name as string,
     routes,
-    "name"
+    'name'
   );
   // 存放组成面包屑的数组
   const matched = [];
 
   // 获取每个父级路径对应的路由信息
   parentRoutes.forEach(path => {
-    if (path !== "/") matched.push(findRouteByPath(path, routes));
+    if (path !== '/') matched.push(findRouteByPath(path, routes));
   });
 
   matched.push(currentRoute);

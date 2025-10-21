@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { getConfig } from "@/config";
+import { getConfig } from '@/config';
 
-const TITLE = getConfig("Title");
+const TITLE = getConfig('Title');
 </script>
 
 <template>

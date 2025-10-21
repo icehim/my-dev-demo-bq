@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
 import {
   type userType,
   store,
@@ -6,24 +6,24 @@ import {
   resetRouter,
   routerArrays,
   storageLocal
-} from "../utils";
+} from '../utils';
 import {
   type UserResult,
   type RefreshTokenResult,
   getLogin,
   refreshTokenApi
-} from "@/api/user";
-import { useMultiTagsStoreHook } from "./multiTags";
-import { type DataInfo, setToken, removeToken, userKey } from "@/utils/auth";
+} from '@/api/user';
+import { useMultiTagsStoreHook } from './multiTags';
+import { type DataInfo, setToken, removeToken, userKey } from '@/utils/auth';
 
-export const useUserStore = defineStore("pure-user", {
+export const useUserStore = defineStore('pure-user', {
   state: (): userType => ({
     // 头像
-    avatar: storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? "",
+    avatar: storageLocal().getItem<DataInfo<number>>(userKey)?.avatar ?? '',
     // 用户名
-    username: storageLocal().getItem<DataInfo<number>>(userKey)?.username ?? "",
+    username: storageLocal().getItem<DataInfo<number>>(userKey)?.username ?? '',
     // 昵称
-    nickname: storageLocal().getItem<DataInfo<number>>(userKey)?.nickname ?? "",
+    nickname: storageLocal().getItem<DataInfo<number>>(userKey)?.nickname ?? '',
     // 页面级别权限
     roles: storageLocal().getItem<DataInfo<number>>(userKey)?.roles ?? [],
     // 按钮级别权限
@@ -78,13 +78,13 @@ export const useUserStore = defineStore("pure-user", {
     },
     /** 前端登出（不调用接口） */
     logOut() {
-      this.username = "";
+      this.username = '';
       this.roles = [];
       this.permissions = [];
       removeToken();
-      useMultiTagsStoreHook().handleTags("equal", [...routerArrays]);
+      useMultiTagsStoreHook().handleTags('equal', [...routerArrays]);
       resetRouter();
-      router.push("/login");
+      router.push('/login');
     },
     /** 刷新`token` */
     async handRefreshToken(data) {

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { toRaw } from "vue";
-import { useRenderIcon } from "@/components/ReIcon/src/hooks";
+import { toRaw } from 'vue';
+import { useRenderIcon } from '@/components/ReIcon/src/hooks';
 
 defineProps({
   extraIcon: {
     type: String,
-    default: ""
+    default: ''
   }
 });
 </script>

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ListItem } from "../data";
-import { ref, PropType, nextTick } from "vue";
-import { useNav } from "@/layout/hooks/useNav";
-import { deviceDetection } from "@pureadmin/utils";
+import { ListItem } from '../data';
+import { ref, PropType, nextTick } from 'vue';
+import { useNav } from '@/layout/hooks/useNav';
+import { deviceDetection } from '@pureadmin/utils';
 
 defineProps({
   noticeItem: {
@@ -28,14 +28,14 @@ function hoverTitle() {
 
 function hoverDescription(event, description) {
   // currentWidth 为文本在页面中所占的宽度，创建标签，加入到页面，获取currentWidth ,最后在移除
-  const tempTag = document.createElement("span");
+  const tempTag = document.createElement('span');
   tempTag.innerText = description;
-  tempTag.className = "getDescriptionWidth";
-  document.querySelector("body").appendChild(tempTag);
+  tempTag.className = 'getDescriptionWidth';
+  document.querySelector('body').appendChild(tempTag);
   const currentWidth = (
-    document.querySelector(".getDescriptionWidth") as HTMLSpanElement
+    document.querySelector('.getDescriptionWidth') as HTMLSpanElement
   ).offsetWidth;
-  document.querySelector(".getDescriptionWidth").remove();
+  document.querySelector('.getDescriptionWidth').remove();
 
   // cellWidth为容器的宽度
   const cellWidth = event.target.offsetWidth;

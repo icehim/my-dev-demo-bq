@@ -6,9 +6,9 @@
       <label>
         比例 (px / m)：
         <input
+          v-model.number="scale"
           type="number"
           step="1"
-          v-model.number="scale"
           @change="onScaleChange"
         />
       </label>
@@ -25,8 +25,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onBeforeUnmount } from "vue";
-import Konva from "konva";
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
+import Konva from 'konva';
 
 // ==== 参数定义 ====
 const CARRIAGE = { length: 13, width: 3, capacity_t: 65 };
@@ -68,8 +68,8 @@ const drawStage = () => {
     y: 8,
     text: `车厢: ${CARRIAGE.length}m × ${CARRIAGE.width}m (载重 ${CARRIAGE.capacity_t}t)  车辆: ${CAR.length}m × ${CAR.width}m (${CAR.weight_t}t)`,
     fontSize: 14,
-    fontFamily: "Microsoft Yahei",
-    fill: "#333"
+    fontFamily: 'Microsoft Yahei',
+    fill: '#333'
   });
   layer.add(title);
 
@@ -79,10 +79,10 @@ const drawStage = () => {
     y: carriageY,
     width: carriagePx.w,
     height: carriagePx.h,
-    stroke: "#333",
+    stroke: '#333',
     strokeWidth: 2,
     cornerRadius: 4,
-    fill: "#fafafa"
+    fill: '#fafafa'
   });
   layer.add(carriageRect);
 
@@ -93,7 +93,7 @@ const drawStage = () => {
     gridGroup.add(
       new Konva.Line({
         points: [x, 0, x, carriagePx.h],
-        stroke: "#e6e6e6",
+        stroke: '#e6e6e6',
         strokeWidth: 1
       })
     );
@@ -103,7 +103,7 @@ const drawStage = () => {
     gridGroup.add(
       new Konva.Line({
         points: [0, y, carriagePx.w, y],
-        stroke: "#e6e6e6",
+        stroke: '#e6e6e6',
         strokeWidth: 1
       })
     );
@@ -121,8 +121,8 @@ const drawStage = () => {
     y: carriageY + (carriagePx.h - carPx.h) / 2
   };
 
-  addVehicle("车A", car1Pos, carPx, carriageX, carriageY, carriagePx);
-  addVehicle("车B", car2Pos, carPx, carriageX, carriageY, carriagePx);
+  addVehicle('车A', car1Pos, carPx, carriageX, carriageY, carriagePx);
+  addVehicle('车B', car2Pos, carPx, carriageX, carriageY, carriagePx);
 
   layer.draw();
 };
@@ -137,8 +137,8 @@ function addVehicle(name, pos, carPx, carriageX, carriageY, carriagePx) {
   const rect = new Konva.Rect({
     width: carPx.w,
     height: carPx.h,
-    fill: "#dbeafe",
-    stroke: "#2563eb",
+    fill: '#dbeafe',
+    stroke: '#2563eb',
     strokeWidth: 2,
     cornerRadius: 4
   });
@@ -149,7 +149,7 @@ function addVehicle(name, pos, carPx, carriageX, carriageY, carriagePx) {
     text: `${name}\n${CAR.length}m×${CAR.width}m\n${CAR.weight_t}t`,
     fontSize: 12,
     lineHeight: 1.1,
-    fill: "#0f172a"
+    fill: '#0f172a'
   });
 
   group.add(rect);
@@ -169,23 +169,23 @@ function addVehicle(name, pos, carPx, carriageX, carriageY, carriagePx) {
 
   group._initialPos = { x: pos.x, y: pos.y };
 
-  group.on("dragstart", () => {
-    rect.stroke("#dc2626");
-    rect.shadowColor("black");
+  group.on('dragstart', () => {
+    rect.stroke('#dc2626');
+    rect.shadowColor('black');
     rect.shadowBlur(8);
     layer.draw();
   });
 
-  group.on("dragmove", () => {
+  group.on('dragmove', () => {
     const collided = checkAnyOverlap(group);
-    rect.fill(collided ? "#fee2e2" : "#dbeafe");
+    rect.fill(collided ? '#fee2e2' : '#dbeafe');
     layer.batchDraw();
   });
 
-  group.on("dragend", () => {
-    rect.stroke("#2563eb");
+  group.on('dragend', () => {
+    rect.stroke('#2563eb');
     rect.shadowBlur(0);
-    rect.fill("#dbeafe");
+    rect.fill('#dbeafe');
 
     const other = findOverlappingVehicle(group);
     if (other) {
@@ -277,7 +277,7 @@ const onScaleChange = () => {
 onMounted(() => {
   initStage();
 
-  window.addEventListener("resize", () => {
+  window.addEventListener('resize', () => {
     if (stage && containerRef.value) {
       stage.width(containerRef.value.clientWidth);
       stage.height(containerRef.value.clientHeight);
@@ -287,33 +287,38 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  window.removeEventListener("resize", drawStage);
+  window.removeEventListener('resize', drawStage);
 });
 </script>
 
 <style scoped>
 .carriage-container {
-  font-family: "Microsoft Yahei", Arial;
   margin: 18px;
+  font-family: 'Microsoft Yahei', Arial, serif;
   background: #f7f7f7;
 }
+
 .canvas-box {
-  border: 1px solid #ccc;
   width: 900px;
   height: 420px;
   background: #fff;
+  border: 1px solid #ccc;
 }
+
 .controls {
   margin-bottom: 8px;
 }
+
 .info {
   margin-top: 8px;
   font-size: 14px;
 }
+
 label {
   margin-right: 10px;
 }
-input[type="number"] {
+
+input[type='number'] {
   width: 80px;
 }
 </style>

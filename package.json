@@ -88,7 +88,12 @@
     "vue-konva": "^3.2.6",
     "vue-router": "^4.5.1",
     "vue-tippy": "^6.7.1",
-    "vue-types": "^6.0.0"
+    "vue-types": "^6.0.0",
+    "@leafer-in/arrow": "^1.9.12",
+    "@leafer-in/editor": "^1.9.12",
+    "@leafer-in/scroll": "^1.9.12",
+    "@leafer-in/text-editor": "^1.9.12",
+    "leafer-ui": "^1.9.12"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",

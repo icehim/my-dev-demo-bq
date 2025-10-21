@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import MenuFold from "~icons/ri/menu-fold-fill";
-import MenuUnfold from "~icons/ri/menu-unfold-fill";
+import MenuFold from '~icons/ri/menu-fold-fill';
+import MenuUnfold from '~icons/ri/menu-unfold-fill';
 
 interface Props {
   isActive?: boolean;
@@ -11,11 +11,11 @@ withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  (e: "toggleClick"): void;
+  (e: 'toggleClick'): void;
 }>();
 
 const toggleClick = () => {
-  emit("toggleClick");
+  emit('toggleClick');
 };
 </script>
 

@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
 import {
   type appType,
   store,
@@ -6,9 +6,9 @@ import {
   storageLocal,
   deviceDetection,
   responsiveStorageNameSpace
-} from "../utils";
+} from '../utils';
 
-export const useAppStore = defineStore("pure-app", {
+export const useAppStore = defineStore('pure-app', {
   state: (): appType => ({
     sidebar: {
       opened:
@@ -23,7 +23,7 @@ export const useAppStore = defineStore("pure-app", {
       storageLocal().getItem<StorageConfigs>(
         `${responsiveStorageNameSpace()}layout`
       )?.layout ?? getConfig().Layout,
-    device: deviceDetection() ? "mobile" : "desktop",
+    device: deviceDetection() ? 'mobile' : 'desktop',
     // 浏览器窗口的可视区域大小
     viewportSize: {
       width: document.documentElement.clientWidth,

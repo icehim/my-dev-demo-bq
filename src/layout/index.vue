@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import "animate.css";
+import 'animate.css';
 // 引入 src/components/ReIcon/src/offlineIcon.ts 文件中所有使用addIcon添加过的本地图标
-import "@/components/ReIcon/src/offlineIcon";
-import { setType } from "./types";
-import { useLayout } from "./hooks/useLayout";
-import { useAppStoreHook } from "@/store/modules/app";
-import { useSettingStoreHook } from "@/store/modules/settings";
-import { useDataThemeChange } from "@/layout/hooks/useDataThemeChange";
+import '@/components/ReIcon/src/offlineIcon';
+import { setType } from './types';
+import { useLayout } from './hooks/useLayout';
+import { useAppStoreHook } from '@/store/modules/app';
+import { useSettingStoreHook } from '@/store/modules/settings';
+import { useDataThemeChange } from '@/layout/hooks/useDataThemeChange';
 import {
   h,
   ref,
@@ -15,21 +15,21 @@ import {
   onMounted,
   onBeforeMount,
   defineComponent
-} from "vue";
+} from 'vue';
 import {
   useDark,
   useGlobal,
   deviceDetection,
   useResizeObserver
-} from "@pureadmin/utils";
+} from '@pureadmin/utils';
 
-import LayTag from "./components/lay-tag/index.vue";
-import LayNavbar from "./components/lay-navbar/index.vue";
-import LayContent from "./components/lay-content/index.vue";
-import LaySetting from "./components/lay-setting/index.vue";
-import NavVertical from "./components/lay-sidebar/NavVertical.vue";
-import NavHorizontal from "./components/lay-sidebar/NavHorizontal.vue";
-import BackTopIcon from "@/assets/svg/back_top.svg?component";
+import LayTag from './components/lay-tag/index.vue';
+import LayNavbar from './components/lay-navbar/index.vue';
+import LayContent from './components/lay-content/index.vue';
+import LaySetting from './components/lay-setting/index.vue';
+import NavVertical from './components/lay-sidebar/NavVertical.vue';
+import NavHorizontal from './components/lay-sidebar/NavHorizontal.vue';
+import BackTopIcon from '@/assets/svg/back_top.svg?component';
 
 const appWrapperRef = ref();
 const { isDark } = useDark();
@@ -56,7 +56,7 @@ const set: setType = reactive({
       hideSidebar: !set.sidebar.opened,
       openSidebar: set.sidebar.opened,
       withoutAnimation: set.sidebar.withoutAnimation,
-      mobile: set.device === "mobile"
+      mobile: set.device === 'mobile'
     };
   }),
 
@@ -66,7 +66,7 @@ const set: setType = reactive({
 });
 
 function setTheme(layoutModel: string) {
-  window.document.body.setAttribute("layout", layoutModel);
+  window.document.body.setAttribute('layout', layoutModel);
   $storage.layout = {
     layout: `${layoutModel}`,
     theme: $storage.layout?.theme,
@@ -80,7 +80,7 @@ function setTheme(layoutModel: string) {
 
 function toggle(device: string, bool: boolean) {
   useAppStoreHook().toggleDevice(device);
-  useAppStoreHook().toggleSideBar(bool, "resize");
+  useAppStoreHook().toggleSideBar(bool, 'resize');
 }
 
 // 判断是否可自动关闭菜单栏
@@ -91,32 +91,32 @@ useResizeObserver(appWrapperRef, entries => {
   const entry = entries[0];
   const [{ inlineSize: width, blockSize: height }] = entry.borderBoxSize;
   useAppStoreHook().setViewportSize({ width, height });
-  width <= 760 ? setTheme("vertical") : setTheme(useAppStoreHook().layout);
+  width <= 760 ? setTheme('vertical') : setTheme(useAppStoreHook().layout);
   /** width app-wrapper类容器宽度
    * 0 < width <= 760 隐藏侧边栏
    * 760 < width <= 990 折叠侧边栏
    * width > 990 展开侧边栏
    */
   if (width > 0 && width <= 760) {
-    toggle("mobile", false);
+    toggle('mobile', false);
     isAutoCloseSidebar = true;
   } else if (width > 760 && width <= 990) {
     if (isAutoCloseSidebar) {
-      toggle("desktop", false);
+      toggle('desktop', false);
       isAutoCloseSidebar = false;
     }
   } else if (width > 990 && !set.sidebar.isClickCollapse) {
-    toggle("desktop", true);
+    toggle('desktop', true);
     isAutoCloseSidebar = true;
   } else {
-    toggle("desktop", false);
+    toggle('desktop', false);
     isAutoCloseSidebar = false;
   }
 });
 
 onMounted(() => {
   if (isMobile) {
-    toggle("mobile", false);
+    toggle('mobile', false);
   }
 });
 
@@ -125,27 +125,27 @@ onBeforeMount(() => {
 });
 
 const LayHeader = defineComponent({
-  name: "LayHeader",
+  name: 'LayHeader',
   render() {
     return h(
-      "div",
+      'div',
       {
-        class: { "fixed-header": set.fixedHeader },
+        class: { 'fixed-header': set.fixedHeader },
         style: [
-          set.hideTabs && layout.value.includes("horizontal")
+          set.hideTabs && layout.value.includes('horizontal')
             ? isDark.value
-              ? "box-shadow: 0 1px 4px #0d0d0d"
-              : "box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)"
-            : ""
+              ? 'box-shadow: 0 1px 4px #0d0d0d'
+              : 'box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08)'
+            : ''
         ]
       },
       {
         default: () => [
           !pureSetting.hiddenSideBar &&
-          (layout.value.includes("vertical") || layout.value.includes("mix"))
+          (layout.value.includes('vertical') || layout.value.includes('mix'))
             ? h(LayNavbar)
             : null,
-          !pureSetting.hiddenSideBar && layout.value.includes("horizontal")
+          !pureSetting.hiddenSideBar && layout.value.includes('horizontal')
             ? h(NavHorizontal)
             : null,
           h(LayTag)
@@ -210,7 +210,7 @@ const LayHeader = defineComponent({
   &::after {
     clear: both;
     display: table;
-    content: "";
+    content: '';
   }
 
   &.mobile.openSidebar {

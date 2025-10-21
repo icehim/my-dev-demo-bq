@@ -1,22 +1,22 @@
 <template>
-  <div id="map" class="map" ref="mapRef" />
+  <div id="map" ref="mapRef" class="map" />
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
-import { useMapStore } from "@/store/modules/map";
-import Map from "ol/Map";
-import View from "ol/View";
-import TileLayer from "ol/layer/Tile";
-import OSM from "ol/source/OSM";
-import XYZ from "ol/source/XYZ";
-import "ol/ol.css"; // 地图样式
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { useMapStore } from '@/store/modules/map';
+import Map from 'ol/Map';
+import View from 'ol/View';
+import TileLayer from 'ol/layer/Tile';
+import OSM from 'ol/source/OSM';
+import XYZ from 'ol/source/XYZ';
+import 'ol/ol.css'; // 地图样式
 
 const mapStore = useMapStore();
 const mapRef = ref(null);
 
 defineOptions({
-  name: "MapView"
+  name: 'MapView'
 });
 
 onMounted(() => {
@@ -33,13 +33,13 @@ onMounted(() => {
             // 使用 OSM 在线地图: url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
             // 使用 Google 在线地图: url: 'http://mt{0-3}.google.com/vt/lyrs=m&x={x}&y={y}&z={z}'
             // 使用高德地图:
-            url: "https://wprd0{1-4}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}"
+            url: 'https://wprd0{1-4}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&style=7&x={x}&y={y}&z={z}'
           })
         })
       ],
       view: new View({
         // 地图视图
-        projection: "EPSG:4326", // 坐标系，有EPSG:4326和EPSG:3857
+        projection: 'EPSG:4326', // 坐标系，有EPSG:4326和EPSG:3857
         center: [114.064839, 22.548857], // 深圳坐标
         minZoom: 1, // 地图缩放最小级别
         maxZoom: 19, // 地图缩放最大级别
@@ -49,7 +49,7 @@ onMounted(() => {
     mapStore.setMap(map);
   } else {
     // 复用已有实例，只切换 target
-    map.setTarget("map");
+    map.setTarget('map');
   }
 });
 
@@ -67,6 +67,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
 }
+
 .main-content {
   margin: 0 !important;
 }

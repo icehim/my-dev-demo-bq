@@ -5,5 +5,5 @@
 </template>
 
 <script setup lang="ts" name="Zoom">
-import { MapView } from "@/components/MapView";
+import { MapView } from '@/components/MapView';
 </script>

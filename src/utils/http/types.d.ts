@@ -3,7 +3,7 @@ import type {
   AxiosError,
   AxiosResponse,
   AxiosRequestConfig
-} from "axios";
+} from 'axios';
 
 export type resultType = {
   accessToken?: string;
@@ -11,7 +11,7 @@ export type resultType = {
 
 export type RequestMethods = Extract<
   Method,
-  "get" | "post" | "put" | "delete" | "patch" | "option" | "head"
+  'get' | 'post' | 'put' | 'delete' | 'patch' | 'option' | 'head'
 >;
 
 export interface PureHttpError extends AxiosError {

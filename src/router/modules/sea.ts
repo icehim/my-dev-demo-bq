@@ -1,25 +1,25 @@
 export default {
-  path: "/sea",
+  path: '/sea',
   meta: {
-    icon: "ep/location",
-    title: "海上",
+    icon: 'ep/location',
+    title: '海上',
     rank: 99
   },
   children: [
     {
-      path: "/sea/drawingBoard",
-      name: "drawingBoard",
-      component: () => import("@/views/sea/drawingBoard/index.vue"),
+      path: '/sea/drawingBoard',
+      name: 'drawingBoard',
+      component: () => import('@/views/sea/drawingBoard/index.vue'),
       meta: {
-        title: "绘板"
+        title: '绘板'
       }
     },
     {
-      path: "/sea/ganttChart",
-      name: "ganttChart",
-      component: () => import("@/views/sea/ganttChart/index.vue"),
+      path: '/sea/ganttChart',
+      name: 'ganttChart',
+      component: () => import('@/views/sea/ganttChart/index.vue'),
       meta: {
-        title: "甘特图"
+        title: '甘特图'
       }
     }
   ]

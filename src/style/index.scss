@@ -1,8 +1,8 @@
-@use "theme";
-@use "transition";
-@use "element-plus";
-@use "sidebar";
-@use "dark";
+@use 'theme';
+@use 'transition';
+@use 'element-plus';
+@use 'sidebar';
+@use 'dark';
 
 /* 自定义全局 CssVar */
 :root {
@@ -24,6 +24,11 @@
   --pure-theme-sidebar-logo: none;
   --pure-theme-menu-title-hover: initial;
   --pure-theme-menu-active-before: transparent;
+
+  // 白板
+  --active-bg-color: #3f85ed;
+  --text-color: #000;
+  --title-box-shadow: 0 15px 40px rgb(0 0 0 / 50%), 0 6px 20px rgb(0 0 0 / 30%);
 }
 
 /* 灰色模式 */
@@ -40,4 +45,18 @@
   width: 100%;
   height: 100%;
   margin: 0 !important;
+}
+
+.text {
+  color: var(--text-color);
+}
+
+.theme-icon {
+  .el-icon {
+    fill: var(--text-color);
+
+    path {
+      fill: var(--text-color);
+    }
+  }
 }

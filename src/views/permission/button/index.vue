@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { hasAuth, getAuths } from "@/router/utils";
+import { hasAuth, getAuths } from '@/router/utils';
 
 defineOptions({
-  name: "PermissionButtonRouter"
+  name: 'PermissionButtonRouter'
 });
 </script>
 

@@ -1,8 +1,8 @@
-import { defineComponent, Fragment } from "vue";
-import { hasAuth } from "@/router/utils";
+import { defineComponent, Fragment } from 'vue';
+import { hasAuth } from '@/router/utils';
 
 export default defineComponent({
-  name: "Auth",
+  name: 'Auth',
   props: {
     value: {
       type: undefined,

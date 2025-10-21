@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-import { ref, unref, watch, onMounted, nextTick } from "vue";
+import { useRoute } from 'vue-router';
+import { ref, unref, watch, onMounted, nextTick } from 'vue';
 
 defineOptions({
-  name: "LayFrame"
+  name: 'LayFrame'
 });
 
 const props = defineProps<{
@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const loading = ref(true);
 const currentRoute = useRoute();
-const frameSrc = ref<string>("");
+const frameSrc = ref<string>('');
 const frameRef = ref<HTMLElement | null>(null);
 if (unref(currentRoute.meta)?.frameSrc) {
   frameSrc.value = unref(currentRoute.meta)?.frameSrc as string;
@@ -32,7 +32,7 @@ function init() {
     if (!iframe) return;
     const _frame = iframe as any;
     if (_frame.attachEvent) {
-      _frame.attachEvent("onload", () => {
+      _frame.attachEvent('onload', () => {
         hideLoading();
       });
     } else {
@@ -47,7 +47,7 @@ watch(
   () => currentRoute.fullPath,
   path => {
     if (
-      currentRoute.name === "Redirect" &&
+      currentRoute.name === 'Redirect' &&
       path.includes(props.frameInfo?.fullPath)
     ) {
       frameSrc.value = path; // redirect时，置换成任意值，待重定向后 重新赋值

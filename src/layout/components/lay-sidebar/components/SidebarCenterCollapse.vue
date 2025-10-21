@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { useGlobal } from "@pureadmin/utils";
-import { useNav } from "@/layout/hooks/useNav";
+import { computed } from 'vue';
+import { useGlobal } from '@pureadmin/utils';
+import { useNav } from '@/layout/hooks/useNav';
 
-import ArrowLeft from "~icons/ri/arrow-left-double-fill";
+import ArrowLeft from '~icons/ri/arrow-left-double-fill';
 
 interface Props {
   isActive?: boolean;
@@ -16,18 +16,18 @@ withDefaults(defineProps<Props>(), {
 const { tooltipEffect } = useNav();
 
 const iconClass = computed(() => {
-  return ["w-[16px]", "h-[16px]"];
+  return ['w-[16px]', 'h-[16px]'];
 });
 
 const { $storage } = useGlobal<GlobalPropertiesApi>();
 const themeColor = computed(() => $storage.layout?.themeColor);
 
 const emit = defineEmits<{
-  (e: "toggleClick"): void;
+  (e: 'toggleClick'): void;
 }>();
 
 const toggleClick = () => {
-  emit("toggleClick");
+  emit('toggleClick');
 };
 </script>
 

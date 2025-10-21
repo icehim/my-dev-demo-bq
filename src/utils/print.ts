@@ -11,7 +11,7 @@ const Print = function (dom, options?: object): PrintFunction {
   if (!(this instanceof Print)) return new Print(dom, options);
   // @ts-expect-error
   this.conf = {
-    styleStr: "",
+    styleStr: '',
     // Elements that need to dynamically get and set the height
     setDomHeightArr: [],
     // Callback before printing
@@ -26,7 +26,7 @@ const Print = function (dom, options?: object): PrintFunction {
       this.conf[key] = options[key];
     }
   }
-  if (typeof dom === "string") {
+  if (typeof dom === 'string') {
     // @ts-expect-error
     this.dom = document.querySelector(dom);
   } else {
@@ -65,8 +65,8 @@ Print.prototype = {
     Copy all styles of the original page
   */
   getStyle: function (): string {
-    let str = "";
-    const styles: NodeListOf<Element> = document.querySelectorAll("style,link");
+    let str = '';
+    const styles: NodeListOf<Element> = document.querySelectorAll('style,link');
     for (let i = 0; i < styles.length; i++) {
       str += styles[i].outerHTML;
     }
@@ -75,40 +75,40 @@ Print.prototype = {
   },
   // form assignment
   getHtml: function (): Element {
-    const inputs = document.querySelectorAll("input");
-    const selects = document.querySelectorAll("select");
-    const textareas = document.querySelectorAll("textarea");
-    const canvass = document.querySelectorAll("canvas");
+    const inputs = document.querySelectorAll('input');
+    const selects = document.querySelectorAll('select');
+    const textareas = document.querySelectorAll('textarea');
+    const canvass = document.querySelectorAll('canvas');
 
     for (let k = 0; k < inputs.length; k++) {
-      if (inputs[k].type == "checkbox" || inputs[k].type == "radio") {
+      if (inputs[k].type == 'checkbox' || inputs[k].type == 'radio') {
         if (inputs[k].checked == true) {
-          inputs[k].setAttribute("checked", "checked");
+          inputs[k].setAttribute('checked', 'checked');
         } else {
-          inputs[k].removeAttribute("checked");
+          inputs[k].removeAttribute('checked');
         }
-      } else if (inputs[k].type == "text") {
-        inputs[k].setAttribute("value", inputs[k].value);
+      } else if (inputs[k].type == 'text') {
+        inputs[k].setAttribute('value', inputs[k].value);
       } else {
-        inputs[k].setAttribute("value", inputs[k].value);
+        inputs[k].setAttribute('value', inputs[k].value);
       }
     }
 
     for (let k2 = 0; k2 < textareas.length; k2++) {
-      if (textareas[k2].type == "textarea") {
+      if (textareas[k2].type == 'textarea') {
         textareas[k2].innerHTML = textareas[k2].value;
       }
     }
 
     for (let k3 = 0; k3 < selects.length; k3++) {
-      if (selects[k3].type == "select-one") {
+      if (selects[k3].type == 'select-one') {
         const child = selects[k3].children;
         for (const i in child) {
-          if (child[i].tagName == "OPTION") {
+          if (child[i].tagName == 'OPTION') {
             if ((child[i] as any).selected == true) {
-              child[i].setAttribute("selected", "selected");
+              child[i].setAttribute('selected', 'selected');
             } else {
-              child[i].removeAttribute("selected");
+              child[i].removeAttribute('selected');
             }
           }
         }
@@ -116,11 +116,11 @@ Print.prototype = {
     }
 
     for (let k4 = 0; k4 < canvass.length; k4++) {
-      const imageURL = canvass[k4].toDataURL("image/png");
-      const img = document.createElement("img");
+      const imageURL = canvass[k4].toDataURL('image/png');
+      const img = document.createElement('img');
       img.src = imageURL;
-      img.setAttribute("style", "max-width: 100%;");
-      img.className = "isNeedRemove";
+      img.setAttribute('style', 'max-width: 100%;');
+      img.className = 'isNeedRemove';
       canvass[k4].parentNode.insertBefore(img, canvass[k4].nextElementSibling);
     }
 
@@ -132,12 +132,12 @@ Print.prototype = {
   writeIframe: function (content) {
     let w: Document | Window;
     let doc: Document;
-    const iframe: HTMLIFrameElement = document.createElement("iframe");
+    const iframe: HTMLIFrameElement = document.createElement('iframe');
     const f: HTMLIFrameElement = document.body.appendChild(iframe);
-    iframe.id = "myIframe";
+    iframe.id = 'myIframe';
     iframe.setAttribute(
-      "style",
-      "position:absolute;width:0;height:0;top:-10px;left:-10px;"
+      'style',
+      'position:absolute;width:0;height:0;top:-10px;left:-10px;'
     );
 
     // eslint-disable-next-line prefer-const
@@ -149,7 +149,7 @@ Print.prototype = {
     doc.write(content);
     doc.close();
 
-    const removes = document.querySelectorAll(".isNeedRemove");
+    const removes = document.querySelectorAll('.isNeedRemove');
     for (let k = 0; k < removes.length; k++) {
       removes[k].parentNode.removeChild(removes[k]);
     }
@@ -179,7 +179,7 @@ Print.prototype = {
       setTimeout(function () {
         frameWindow.focus();
         try {
-          if (!frameWindow.document.execCommand("print", false, null)) {
+          if (!frameWindow.document.execCommand('print', false, null)) {
             frameWindow.print();
           }
         } catch {
@@ -192,16 +192,16 @@ Print.prototype = {
     }
   },
   isDOM:
-    typeof HTMLElement === "object"
+    typeof HTMLElement === 'object'
       ? function (obj) {
           return obj instanceof HTMLElement;
         }
       : function (obj) {
           return (
             obj &&
-            typeof obj === "object" &&
+            typeof obj === 'object' &&
             obj.nodeType === 1 &&
-            typeof obj.nodeName === "string"
+            typeof obj.nodeName === 'string'
           );
         },
   /**
@@ -213,7 +213,7 @@ Print.prototype = {
       arr.forEach(name => {
         const domArr = document.querySelectorAll(name);
         domArr.forEach(dom => {
-          dom.style.height = dom.offsetHeight + "px";
+          dom.style.height = dom.offsetHeight + 'px';
         });
       });
     }

@@ -1,4 +1,4 @@
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia';
 import {
   type cacheType,
   store,
@@ -9,10 +9,10 @@ import {
   constantMenus,
   filterNoPermissionTree,
   formatFlatteningRoutes
-} from "../utils";
-import { useMultiTagsStoreHook } from "./multiTags";
+} from '../utils';
+import { useMultiTagsStoreHook } from './multiTags';
 
-export const usePermissionStore = defineStore("pure-permission", {
+export const usePermissionStore = defineStore('pure-permission', {
   state: () => ({
     // 静态路由生成的菜单
     constantMenus,
@@ -36,20 +36,20 @@ export const usePermissionStore = defineStore("pure-permission", {
     cacheOperate({ mode, name }: cacheType) {
       const delIndex = this.cachePageList.findIndex(v => v === name);
       switch (mode) {
-        case "refresh":
+        case 'refresh':
           this.cachePageList = this.cachePageList.filter(v => v !== name);
           break;
-        case "add":
+        case 'add':
           this.cachePageList.push(name);
           break;
-        case "delete":
+        case 'delete':
           delIndex !== -1 && this.cachePageList.splice(delIndex, 1);
           break;
       }
       /** 监听缓存页面是否存在于标签页，不存在则删除 */
       debounce(() => {
         let cacheLength = this.cachePageList.length;
-        const nameList = getKeyList(useMultiTagsStoreHook().multiTags, "name");
+        const nameList = getKeyList(useMultiTagsStoreHook().multiTags, 'name');
         while (cacheLength > 0) {
           nameList.findIndex(v => v === this.cachePageList[cacheLength - 1]) ===
             -1 &&
