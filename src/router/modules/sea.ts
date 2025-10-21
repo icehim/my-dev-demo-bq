@@ -1,0 +1,26 @@
+export default {
+  path: "/sea",
+  meta: {
+    icon: "ep/location",
+    title: "海上",
+    rank: 99
+  },
+  children: [
+    {
+      path: "/sea/drawingBoard",
+      name: "drawingBoard",
+      component: () => import("@/views/sea/drawingBoard/index.vue"),
+      meta: {
+        title: "绘板"
+      }
+    },
+    {
+      path: "/sea/ganttChart",
+      name: "ganttChart",
+      component: () => import("@/views/sea/ganttChart/index.vue"),
+      meta: {
+        title: "甘特图"
+      }
+    }
+  ]
+} satisfies RouteConfigsTable;
