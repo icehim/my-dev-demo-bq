@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
 import App from '@/components/drawBoard/utils/App';
-import { Star } from 'leafer-ui';
+import { Path, Star } from 'leafer-ui';
 import {
   INITIAL_HEIGHT,
   INITIAL_WIDTH

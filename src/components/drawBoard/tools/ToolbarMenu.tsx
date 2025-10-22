@@ -22,12 +22,6 @@ export default defineComponent({
       }
     });
 
-    // const changeGraphicsZIndex = (type: string) => {
-    //     const graphics = App.drawingBoardInstance.getSelectedGraphics();
-
-    //     graphics
-    // }
-
     return () => (
       <div>
         {activeGraphics.value?.menuPlugins?.length ? (
@@ -41,20 +35,6 @@ export default defineComponent({
             })}
 
             <LayerOptions drawingBoard={App.drawingBoardInstance} />
-
-            {/* <div className="toolbarMenuLayer">
-                            {
-                                LAYER_LIST.map(Layer => {
-                                    return (
-                                        <span title={Layer.title} onClick={() => changeGraphicsZIndex(Layer.type)} key={Layer.type}>
-                                            <ElIcon>
-                                                <Layer.icon />
-                                            </ElIcon>
-                                        </span>
-                                    )
-                                })
-                            }
-                        </div> */}
           </section>
         ) : null}
       </div>

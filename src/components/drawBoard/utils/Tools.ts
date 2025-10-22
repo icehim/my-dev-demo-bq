@@ -1,4 +1,4 @@
-import { Ellipse, Line, Pen, Rect, Text } from 'leafer-ui';
+import { Ellipse, Line, Image, Pen, Rect, Text } from 'leafer-ui';
 import Index from '../tools/index';
 import { render, h, ref, type Ref, nextTick } from 'vue';
 import { Arrow } from '@leafer-in/arrow';
@@ -19,6 +19,7 @@ import type { IAppProps, IToolBarItem } from './types';
 import TextColor from '../plugins/TextColor';
 import TextSize from '../plugins/TextSize';
 import { COLOR } from './constant';
+import assembly_location from '@/assets/militaryTransport/装载指挥所.svg';
 
 export const INITIAL_WIDTH = 0;
 export const INITIAL_HEIGHT = 0;
@@ -184,6 +185,21 @@ export const toolBarOptions: IToolBarItem[] = [
     menuPlugins: [TextSize, TextColor]
   },
   {
+    icon: assembly_location,
+    name: 'assemblyLocation',
+    title: '装载指挥所',
+    createdFactory(x: number, y: number) {
+      return new Image({
+        name: 'assemblyLocation',
+        url: '/src/assets/militaryTransport/装载指挥所.svg',
+        x,
+        y,
+        editable: true
+      });
+    },
+    menuPlugins: []
+  },
+  {
     icon: ERASER_TOOl_ICON,
     name: 'eraserTool',
     title: '橡皮擦',
@@ -242,18 +258,6 @@ class Tools {
 
   public getActiveGraphics() {
     return toolBarOptions[this.toolbarActiveIndex.value];
-  }
-
-  public setTheme(value) {
-    toolBarOptions.forEach(item => {
-      if (item.stroke) {
-        item.stroke = value ? COLOR.BLACK : COLOR.WHITE;
-      }
-
-      if (item.name === 'textTool') {
-        item.fill = value ? COLOR.BLACK : COLOR.WHITE;
-      }
-    });
   }
 }
 

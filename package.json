@@ -62,6 +62,7 @@
     "element-plus": "^2.10.4",
     "js-cookie": "^3.0.5",
     "konva": "^10.0.2",
+    "leafer": "^1.9.12",
     "leaflet": "^1.9.4",
     "leaflet-boundary-canvas": "^1.0.0",
     "leaflet-canvas-marker": "^0.2.0",
@@ -88,12 +89,7 @@
     "vue-konva": "^3.2.6",
     "vue-router": "^4.5.1",
     "vue-tippy": "^6.7.1",
-    "vue-types": "^6.0.0",
-    "@leafer-in/arrow": "^1.9.12",
-    "@leafer-in/editor": "^1.9.12",
-    "@leafer-in/scroll": "^1.9.12",
-    "@leafer-in/text-editor": "^1.9.12",
-    "leafer-ui": "^1.9.12"
+    "vue-types": "^6.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
