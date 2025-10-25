@@ -21,6 +21,14 @@ export default {
       meta: {
         title: '甘特图'
       }
+    },
+    {
+      path: '/sea/word',
+      name: 'word',
+      component: () => import('@/views/sea/word/index.vue'),
+      meta: {
+        title: 'Word'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
