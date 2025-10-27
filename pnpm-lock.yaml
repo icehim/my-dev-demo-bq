@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@hufe921/canvas-editor':
+        specifier: ^0.9.118
+        version: 0.9.118
       '@pureadmin/descriptions':
         specifier: ^1.2.1
         version: 1.2.1(echarts@5.6.0)(element-plus@2.10.5(vue@3.5.18(typescript@5.9.2)))(typescript@5.9.2)
@@ -887,6 +890,10 @@ packages:
 
   '@floating-ui/utils@0.2.10':
     resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
+
+  '@hufe921/canvas-editor@0.9.118':
+    resolution: {integrity: sha512-Jo/2in5vKuYl5kPTq7s15dywFjAnak4ja4jmsf8mM5IHEr2jW5a4S653MfBfNdnppUppjdADLZ3N6u17eoQaAw==}
+    engines: {node: '>=16.9.1'}
 
   '@humanfs/core@0.19.1':
     resolution: {integrity: sha512-5DyQ4+1JEUzejeK1JGICcideyfUbGixgS9jNgex5nqkW+cY7WZhxBigmieN5Qnw9ZosSNVC9KQKyb+GUaGyKUA==}
@@ -4756,6 +4763,8 @@ snapshots:
       '@floating-ui/utils': 0.2.10
 
   '@floating-ui/utils@0.2.10': {}
+
+  '@hufe921/canvas-editor@0.9.118': {}
 
   '@humanfs/core@0.19.1': {}
 
