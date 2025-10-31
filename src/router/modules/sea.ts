@@ -6,14 +6,14 @@ export default {
     rank: 99
   },
   children: [
-    {
+    /*{
       path: '/sea/drawingBoard',
       name: 'drawingBoard',
       component: () => import('@/views/sea/drawingBoard/index.vue'),
       meta: {
         title: '绘板'
       }
-    },
+    },*/
     {
       path: '/sea/ganttChart',
       name: 'ganttChart',
@@ -28,6 +28,14 @@ export default {
       component: () => import('@/views/sea/word/index.vue'),
       meta: {
         title: 'Word'
+      }
+    },
+    {
+      path: '/sea/excalidraw',
+      name: 'excalidraw',
+      component: () => import('@/views/sea/excalidraw/index.vue'),
+      meta: {
+        title: 'excalidraw'
       }
     }
   ]

@@ -25,6 +25,13 @@ import './assets/iconfont/iconfont.css';
 import 'leaflet/dist/leaflet.css';
 import 'mars2d/mars2d.css';
 
+import { createRoot } from 'react-dom/client';
+import { setVeauryOptions } from 'veaury';
+setVeauryOptions({
+  react: {
+    createRoot
+  }
+});
 const app = createApp(App);
 
 // 自定义指令
