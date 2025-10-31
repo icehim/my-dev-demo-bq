@@ -37,6 +37,14 @@ export default {
       meta: {
         title: 'excalidraw'
       }
+    },
+    {
+      path: '/sea/veaury',
+      name: 'veaury',
+      component: () => import('@/views/sea/veaury/index.vue'),
+      meta: {
+        title: 'veaury'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
