@@ -60,3 +60,31 @@
     }
   }
 }
+
+.excalidraw {
+  .App-toolbar__extra-tools-dropdown {
+    .dropdown-menu-container > :nth-child(2),
+    .dropdown-menu-container > :nth-child(4),
+    .dropdown-menu-container > :nth-child(5) {
+      display: none !important;
+    }
+  }
+
+  .HelpDialog {
+    .HelpDialog__header {
+      display: none !important;
+    }
+  }
+
+  .popover {
+    .context-menu {
+      .context-menu-item {
+        width: 150px !important;
+      }
+    }
+  }
+
+  .disable-zen-mode {
+    display: none !important;
+  }
+}
