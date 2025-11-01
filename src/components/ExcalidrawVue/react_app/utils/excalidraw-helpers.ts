@@ -99,7 +99,6 @@ export function createHandleAPI(
     if (initOnceRef.current) return;
     initOnceRef.current = true;
     apiRef.current = api;
-    console.log(apiRef.current.getAppState());
 
     const el = containerRef.current!;
     const animatedRoot = findAnimatedAncestor(el) || el;
