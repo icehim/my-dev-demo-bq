@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ExcalidrawVue from '@/components/ExcalidrawVue';
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import type { AppState } from '@excalidraw/excalidraw/types';
 const detailForm = reactive({
   attribute: '',
@@ -16,42 +16,23 @@ const shapeForm = reactive({
   length: '',
   width: ''
 });
-
 function handleSceneChange(payload: {
   elements: any[];
   appState: AppState;
   files: Record<string, any>;
 }) {
-  console.log('vue场景（防抖）:', payload.appState.selectedElementIds);
+  console.log('change', payload);
 }
-const n = (v: number) => String(Math.round(v)); // 或者保留小数：v.toFixed(2)
-function handleSelectionChange(selected: any[]) {
-  if (selected.length === 0) {
-    // 清空
-    shapeForm.x = '';
-    shapeForm.y = '';
-    shapeForm.length = '';
-    shapeForm.width = '';
-    return;
-  }
-
-  if (selected.length === 1) {
-    const el = selected[0];
-    // 注意：Excalidraw 的元素都有 x/y/width/height（线段/箭头也有外接矩形）
-    shapeForm.x = n(el.x);
-    shapeForm.y = n(el.y);
-    shapeForm.length = n(el.height);
-    shapeForm.width = n(el.width);
-    return;
-  }
-  console.log('选中（防抖，仅集合变化触发）:', selected);
+function onApiReady(api: any) {
+  // 有需要的话把 api 存起来，后面做 updateScene/移动等
+  console.log('API 就绪', api);
 }
 </script>
 
 <template>
   <div class="h-full w-full flex gap-[8px]">
     <excalidraw-vue
-      :onSelectionChange="handleSelectionChange"
+      :onApiReady="onApiReady"
       :onSceneChange="handleSceneChange"
     />
     <el-card class="w-[calc(100%-1208px)]" shadow="never">
