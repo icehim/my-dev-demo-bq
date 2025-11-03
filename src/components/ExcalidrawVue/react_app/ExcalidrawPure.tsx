@@ -9,7 +9,8 @@ import '@excalidraw/excalidraw/index.css';
 
 import {
   useExcalidrawPatches,
-  createHandleAPI
+  createHandleAPI,
+  useBlockShortcutsAndContext
 } from './utils/excalidraw-helpers';
 import { debounce } from '@pureadmin/utils';
 import type { NonDeletedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
@@ -24,6 +25,12 @@ export type ExcalidrawVueProps = {
     appState: any;
     files: Record<string, any>;
   }) => void;
+  /** 是否让 Excalidraw 接管全局键盘（默认 false） */
+  handleKeyboardGlobally?: boolean;
+  /** 是否拦截快捷键（默认 false） */
+  blockShortcuts?: boolean;
+  /** 是否拦截右键/菜单（默认 false） */
+  blockContextMenu?: boolean;
 };
 
 /** 初始样式 */
@@ -41,8 +48,16 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useExcalidrawPatches();
+  // 是否拦截快捷键/右键（默认都开启,不拦截）
+  useBlockShortcutsAndContext(containerRef, {
+    blockKeyboard: props.blockShortcuts ?? false,
+    blockContextMenu: props.blockContextMenu ?? false,
+    blockRightClick: props.blockContextMenu ?? false
+  });
   // 等动画结束/布局稳定后 refresh
   const handleAPI = createHandleAPI(containerRef, apiRef, initOnce);
+  const className =
+    props.blockShortcuts && props.blockContextMenu ? 'excalidraw-readonly' : '';
   // 防抖后的“场景变更”回调
   const emitSceneChange = useMemo(
     () =>
@@ -79,6 +94,7 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
   return (
     <div
       ref={containerRef}
+      className={className}
       style={{
         height: '100%',
         width: '1200px',
@@ -92,6 +108,7 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
         initialData={initialData}
         excalidrawAPI={handleAPIWithExpose}
         onChange={handleChange}
+        handleKeyboardGlobally={props.handleKeyboardGlobally ?? false}
       >
         <MainMenu>
           <MainMenu.DefaultItems.LoadScene />

@@ -1,13 +1,19 @@
 <script setup lang="ts">
 import ExcalidrawVue from '@/components/ExcalidrawVue';
 import { reactive, ref } from 'vue';
-import type { AppState } from '@excalidraw/excalidraw/types';
+import type {
+  AppState,
+  ExcalidrawImperativeAPI
+} from '@excalidraw/excalidraw/types';
 
 import {
   getElementsBBox,
   getGroupBoundingBox
 } from '@/components/ExcalidrawVue/react_app/utils/exca-algorithms';
-import { NonDeletedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import {
+  ExcalidrawElement,
+  NonDeletedExcalidrawElement
+} from '@excalidraw/excalidraw/element/types';
 
 const detailForm = reactive({
   attribute: '',
@@ -25,11 +31,39 @@ const shapeForm = reactive({
 });
 
 // 可选：保留 api，后面如果需要 updateScene/写回画布会用到
-const apiRef = ref<any>(null);
+const apiRef = ref<ExcalidrawImperativeAPI>(null);
 function onApiReady(api: any) {
   apiRef.value = api;
   console.log('API 就绪', api);
+  mockData();
 }
+
+const mockData = () => {
+  setTimeout(() => {
+    apiRef.value.updateScene({
+      elements: [
+        {
+          type: 'rectangle',
+          id: 'rect-001',
+          x: 100,
+          y: 80,
+          width: 200,
+          height: 120,
+          angle: 0,
+          strokeColor: '#1e1e1e',
+          backgroundColor: 'transparent',
+          fillStyle: 'solid',
+          strokeWidth: 1,
+          strokeStyle: 'solid',
+          roughness: 0,
+          opacity: 100,
+          roundness: null,
+          groupIds: []
+        } as unknown
+      ] as ExcalidrawElement[]
+    });
+  }, 200);
+};
 
 // 小工具：数字转字符串（四舍五入），你也可以保留小数：v.toFixed(2)
 const n = (v: number) => String(Math.round(v));
@@ -39,6 +73,7 @@ function handleSceneChange(payload: {
   appState: AppState;
   files: Record<string, any>;
 }) {
+  console.log(payload.elements);
   const { elements, appState } = payload;
   // 1) 取选中集
   const ids = Object.keys(appState.selectedElementIds || {});
@@ -82,6 +117,9 @@ function handleSceneChange(payload: {
     shapeForm.width = n(bbox.width);
   }
 }
+const handleTest = () => {
+  console.log(111111);
+};
 </script>
 
 <template>
@@ -89,6 +127,8 @@ function handleSceneChange(payload: {
     <excalidraw-vue
       :onApiReady="onApiReady"
       :onSceneChange="handleSceneChange"
+      :blockShortcuts="true"
+      :blockContextMenu="true"
     />
     <el-card class="w-[calc(100%-1208px)]" shadow="never">
       <el-card shadow="never" header="详细信息">
@@ -126,6 +166,7 @@ function handleSceneChange(payload: {
           </el-form-item>
         </el-form>
       </el-card>
+      <el-button type="primary" @click="handleTest">测试</el-button>
     </el-card>
   </div>
 </template>

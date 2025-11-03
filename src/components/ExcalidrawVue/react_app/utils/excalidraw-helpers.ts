@@ -127,3 +127,84 @@ export function createHandleAPI(
     setTimeout(doRefresh, 1000);
   };
 }
+
+/** 禁用快捷键 & 右键（容器级，捕获阶段拦截） */
+
+type BlockOpts = {
+  blockKeyboard?: boolean;
+  blockContextMenu?: boolean;
+  blockRightClick?: boolean;
+};
+
+export function useBlockShortcutsAndContext(
+  containerRef: React.RefObject<HTMLElement>,
+  opts: BlockOpts = {
+    blockKeyboard: false,
+    blockContextMenu: false,
+    blockRightClick: false
+  }
+) {
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const stopAll = (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // 拦截常见快捷键（Delete/Backspace/Ctrl/Cmd 组合等）
+      if (
+        e.key === 'Delete' ||
+        e.key === 'Backspace' ||
+        e.key === 'Escape' ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey // 基本就把快捷键都拦了
+      )
+        stopAll(e);
+    };
+
+    // 用 capture=true，优先于内部处理
+    if (opts.blockKeyboard)
+      el.addEventListener('keydown', onKeyDown, { capture: true });
+    if (opts.blockContextMenu)
+      el.addEventListener('contextmenu', stopAll, { capture: true });
+    if (opts.blockRightClick)
+      el.addEventListener(
+        'pointerdown',
+        (e: any) => {
+          if (e.button === 2) stopAll(e); // 右键按下
+        },
+        { capture: true }
+      );
+
+    // 有些菜单是下拉层，保险起见也拦一下（存在就禁用）
+    const killDropdown = (ev: Event) => {
+      const target = ev.target as HTMLElement;
+      if (target?.closest?.('.excalidraw .dropdown-menu')) stopAll(ev);
+    };
+    document.addEventListener('pointerdown', killDropdown, { capture: true });
+    document.addEventListener('contextmenu', killDropdown, { capture: true });
+
+    return () => {
+      if (opts.blockKeyboard)
+        el.removeEventListener('keydown', onKeyDown, { capture: true } as any);
+      if (opts.blockContextMenu)
+        el.removeEventListener('contextmenu', stopAll, {
+          capture: true
+        } as any);
+      if (opts.blockRightClick)
+        el.removeEventListener('pointerdown', () => {}, {
+          capture: true
+        } as any);
+      document.removeEventListener('pointerdown', killDropdown, {
+        capture: true
+      } as any);
+      document.removeEventListener('contextmenu', killDropdown, {
+        capture: true
+      } as any);
+    };
+  }, [containerRef]);
+}

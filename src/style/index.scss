@@ -88,3 +88,19 @@
     display: none !important;
   }
 }
+
+.excalidraw-readonly {
+  .excalidraw {
+    .FixedSideContainer_side_top {
+      display: none !important;
+    }
+
+    .layer-ui__wrapper__footer {
+      .layer-ui__wrapper__footer-right {
+        .help-icon {
+          display: none !important;
+        }
+      }
+    }
+  }
+}
