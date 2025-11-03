@@ -2,6 +2,13 @@
 import ExcalidrawVue from '@/components/ExcalidrawVue';
 import { reactive, ref } from 'vue';
 import type { AppState } from '@excalidraw/excalidraw/types';
+
+import {
+  getElementsBBox,
+  getGroupBoundingBox
+} from '@/components/ExcalidrawVue/react_app/utils/exca-algorithms';
+import { NonDeletedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+
 const detailForm = reactive({
   attribute: '',
   name: '',
@@ -16,16 +23,64 @@ const shapeForm = reactive({
   length: '',
   width: ''
 });
+
+// 可选：保留 api，后面如果需要 updateScene/写回画布会用到
+const apiRef = ref<any>(null);
+function onApiReady(api: any) {
+  apiRef.value = api;
+  console.log('API 就绪', api);
+}
+
+// 小工具：数字转字符串（四舍五入），你也可以保留小数：v.toFixed(2)
+const n = (v: number) => String(Math.round(v));
+
 function handleSceneChange(payload: {
-  elements: any[];
+  elements: readonly NonDeletedExcalidrawElement[];
   appState: AppState;
   files: Record<string, any>;
 }) {
-  console.log('change', payload);
-}
-function onApiReady(api: any) {
-  // 有需要的话把 api 存起来，后面做 updateScene/移动等
-  console.log('API 就绪', api);
+  const { elements, appState } = payload;
+  // 1) 取选中集
+  const ids = Object.keys(appState.selectedElementIds || {});
+  const selected = ids.length ? elements.filter(e => ids.includes(e.id)) : [];
+
+  // 2) 填表单：数量
+  shapeForm.count = String(selected.length);
+
+  if (!selected.length) {
+    // 清空
+    shapeForm.count =
+      shapeForm.x =
+      shapeForm.y =
+      shapeForm.length =
+      shapeForm.width =
+        '';
+    return;
+  }
+
+  // 3) 单选且该元素在某编组内 → 优先算编组外接框
+  if (selected.length === 1 && selected[0].groupIds?.length) {
+    const info = apiRef.value
+      ? getGroupBoundingBox(apiRef.value, selected[0])
+      : null;
+    if (info) {
+      shapeForm.x = n(info.x);
+      shapeForm.y = n(info.y);
+      shapeForm.length = n(info.height);
+      shapeForm.width = n(info.width);
+      return;
+    }
+    // 如果没拿到 api 或没找到组，就降级走选中集外接框
+  }
+
+  // 4) 多选/普通单选：按当前选中集计算外接框
+  const bbox = getElementsBBox(selected);
+  if (bbox) {
+    shapeForm.x = n(bbox.x);
+    shapeForm.y = n(bbox.y);
+    shapeForm.length = n(bbox.height);
+    shapeForm.width = n(bbox.width);
+  }
 }
 </script>
 
