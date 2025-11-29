@@ -54,7 +54,8 @@ export default {
           'each',
           'include',
           'mixin',
-          'use'
+          'use',
+          'forward'
         ]
       }
     ],
