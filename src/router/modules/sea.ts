@@ -45,6 +45,14 @@ export default {
       meta: {
         title: 'veaury'
       }
+    },
+    {
+      path: '/sea/theme',
+      name: 'theme',
+      component: () => import('@/views/sea/theme/index.vue'),
+      meta: {
+        title: '主题色'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
