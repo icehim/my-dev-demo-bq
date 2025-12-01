@@ -53,6 +53,14 @@ export default {
       meta: {
         title: '主题色'
       }
+    },
+    {
+      path: '/sea/advsearch',
+      name: 'advSearch',
+      component: () => import('@/views/sea/advSearch/index.vue'),
+      meta: {
+        title: '高级搜索'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
