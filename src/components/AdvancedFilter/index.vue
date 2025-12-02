@@ -44,7 +44,7 @@
           <template v-else>
             <el-tag
               effect="plain"
-              :title="firstText"
+              :title="allTextsTooltip"
               class="w-[120px] custom-truncate mr-[8px]"
             >
               {{ firstText }}
@@ -53,7 +53,24 @@
               +{{ restCount }}
             </el-tag>
           </template>
-          <el-icon><Filter /></el-icon>
+          <!-- 图标区域：默认是 Filter，有值时 hover 才切成 X -->
+          <span
+            class="adv-icon-wrapper"
+            :class="{ 'is-clearable': clearable && hasValue }"
+          >
+            <!-- Filter 图标：始终存在 -->
+            <el-icon class="adv-filter-icon">
+              <Filter />
+            </el-icon>
+            <!-- 清空图标：只有有值且 clearable 时才渲染 -->
+            <el-icon
+              v-if="clearable && hasValue"
+              class="adv-clear-icon"
+              @click.stop="onClear"
+            >
+              <CircleClose />
+            </el-icon>
+          </span>
         </div>
       </slot>
     </template>
@@ -62,25 +79,32 @@
 
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
-import { Filter } from '@element-plus/icons-vue';
+import { Filter, CircleClose } from '@element-plus/icons-vue';
 import { cloneDeep } from '@pureadmin/utils';
 
-const props = defineProps<{
-  /** 父组件传进来的高级筛选对象，比如 { name: '', gender: '' } */
-  model: Record<string, any>;
-  /**
-   * 字段配置，用来生成 tag 文案 & 重置
-   */
-  fields: {
-    key: string;
-    label: string;
-    formatter?: (value: any, model: Record<string, any>) => string;
-    /** 重置时的默认值，不传就按类型猜 */
-    resetValue?: any;
-  }[];
-  /** 表单 label 宽度，默认 80px */
-  labelWidth?: string | number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** 父组件传进来的高级筛选对象，比如 { name: '', gender: '' } */
+    model: Record<string, any>;
+    /**
+     * 字段配置，用来生成 tag 文案 & 重置
+     */
+    fields: {
+      key: string;
+      label: string;
+      formatter?: (value: any, model: Record<string, any>) => string;
+      /** 重置时的默认值，不传就按类型猜 */
+      resetValue?: any;
+    }[];
+    /** 表单 label 宽度，默认 80px */
+    labelWidth?: string | number;
+    /** 是否可清空（右侧 X 图标），默认 true */
+    clearable?: boolean;
+  }>(),
+  {
+    clearable: true
+  }
+);
 
 const emit = defineEmits<{
   (e: 'confirm', payload: Record<string, any>): void;
@@ -124,7 +148,9 @@ const activeTexts = computed(() => {
 const hasValue = computed(() => activeTexts.value.length > 0);
 const firstText = computed(() => activeTexts.value[0] ?? '');
 const restCount = computed(() => activeTexts.value.length - 1);
-
+const allTextsTooltip = computed(() => {
+  return activeTexts.value.join('\n'); // 多行显示
+});
 /** 重置：只动 innerForm，然后把结果通过事件抛回去，父组件自己赋值 */
 const onReset = () => {
   const next = cloneDeep(innerForm);
@@ -152,6 +178,12 @@ const onReset = () => {
   emit('reset', cloneDeep(next));
 };
 
+const onClear = () => {
+  // 清空的时候就复用重置逻辑
+  onReset();
+  // 如果你希望清空时顺便关掉 popover，可以加：
+  // visible.value = false;
+};
 /** 确定：关闭弹窗 + 抛出当前 innerForm 内容给父组件 */
 const onConfirm = () => {
   visible.value = false;
@@ -204,5 +236,47 @@ defineExpose({
 .adv-placeholder {
   font-size: 12px;
   color: var(--el-text-color-placeholder);
+}
+
+.adv-icon-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 4px;
+}
+
+/* 叠两个图标 */
+.adv-filter-icon,
+.adv-clear-icon {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 14px;
+  transition: opacity 0.15s;
+}
+
+/* 默认：只显示 filter */
+.adv-filter-icon {
+  color: var(--el-text-color-placeholder);
+  opacity: 1;
+}
+
+.adv-clear-icon {
+  color: var(--el-text-color-placeholder);
+  pointer-events: none;
+  opacity: 0;
+}
+
+/* ⭐ 只有在 is-clearable 时，hover 才切到 X */
+.adv-icon-wrapper.is-clearable:hover .adv-filter-icon {
+  opacity: 0;
+}
+
+.adv-icon-wrapper.is-clearable:hover .adv-clear-icon {
+  pointer-events: auto;
+  opacity: 1;
 }
 </style>
