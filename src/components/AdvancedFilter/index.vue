@@ -113,10 +113,10 @@ const emit = defineEmits<{
 
 const visible = ref(false);
 
-/** 内部自己的表单副本，想怎么改都可以（不触碰 props） */
+/** 内部自己的表单副本，编辑用（不触碰 props） */
 const innerForm = reactive<Record<string, any>>(cloneDeep(props.model));
 
-/** 如果父组件外部改了 model，这里同步一下副本（例如点击“外层重置”） */
+/** 父组件外部改了 model，这里同步一下副本（例如外层点“重置全部”） */
 watch(
   () => props.model,
   newVal => {
@@ -125,18 +125,28 @@ watch(
   { deep: true }
 );
 
+/** ⭐ 每次弹出层打开时，用当前 model 覆盖 innerForm（丢弃上次未确认的编辑） */
+watch(
+  () => visible.value,
+  val => {
+    if (val) {
+      Object.assign(innerForm, cloneDeep(props.model));
+    }
+  }
+);
+
 const labelWidth = computed(() => props.labelWidth ?? '80px');
 
-/** 根据 innerForm 计算 tag 文案 */
+/** ⭐ 根据 props.model（已确认值）计算 tag 文案，而不是 innerForm（编辑态） */
 const activeTexts = computed(() => {
   const result: string[] = [];
 
   props.fields.forEach(field => {
-    const value = innerForm[field.key];
+    const value = props.model[field.key];
 
     if (value === undefined || value === null || value === '') return;
 
-    const text = field.formatter?.(value, innerForm) ?? String(value);
+    const text = field.formatter?.(value, props.model) ?? String(value);
     if (!text) return;
 
     result.push(`${field.label}: ${text}`);
@@ -148,10 +158,9 @@ const activeTexts = computed(() => {
 const hasValue = computed(() => activeTexts.value.length > 0);
 const firstText = computed(() => activeTexts.value[0] ?? '');
 const restCount = computed(() => activeTexts.value.length - 1);
-const allTextsTooltip = computed(() => {
-  return activeTexts.value.join('\n'); // 多行显示
-});
-/** 重置：只动 innerForm，然后把结果通过事件抛回去，父组件自己赋值 */
+const allTextsTooltip = computed(() => activeTexts.value.join('\n'));
+
+/** 重置：只动 innerForm，然后把结果通过事件抛回去，父组件自己赋值 advQuery */
 const onReset = () => {
   const next = cloneDeep(innerForm);
 
@@ -172,25 +181,23 @@ const onReset = () => {
     }
   });
 
-  // 用 next 更新副本
   Object.assign(innerForm, next);
-  // 通知父组件：你要不要也把自己的 model 一起重置
   emit('reset', cloneDeep(next));
 };
 
+/** 清空按钮：复用重置逻辑 */
 const onClear = () => {
-  // 清空的时候就复用重置逻辑
   onReset();
-  // 如果你希望清空时顺便关掉 popover，可以加：
+  // 不想关闭 pop 就别动 visible
   // visible.value = false;
 };
-/** 确定：关闭弹窗 + 抛出当前 innerForm 内容给父组件 */
+
+/** 确定：关闭弹窗 + 把当前 innerForm 内容给父组件（父组件再同步到 model/advQuery） */
 const onConfirm = () => {
   visible.value = false;
   emit('confirm', cloneDeep(innerForm));
 };
 
-// 暴露给父组件控制弹窗（可选）
 defineExpose({
   open: () => (visible.value = true),
   close: () => (visible.value = false)
