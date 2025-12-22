@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { ElMessage } from 'element-plus';
-import { ref } from 'vue';
+import { ElMessage, ElTable } from 'element-plus';
+import { nextTick, ref } from 'vue';
 
 const tableData = ref<TD_ITEM[]>([
   { tdxh: 1, tdmc: '第1梯队', bd: 'A部队' },
@@ -17,9 +17,21 @@ const selection = ref<TD_ITEM[]>([]);
 function onSelectionChange(rows: TD_ITEM[]) {
   selection.value = rows;
 }
-
-function onMove(dir: 'up' | 'down') {
+const tableRef = ref<InstanceType<typeof ElTable>>();
+async function onMove(dir: 'up' | 'down') {
+  const selectedIds = new Set(selection.value.map(r => r.tdxh));
+  // 先移动
   tableData.value = moveSelected(tableData.value, selection.value, dir);
+
+  // 等表格刷新完再恢复选中
+  await nextTick();
+
+  tableRef.value?.clearSelection();
+  for (const row of tableData.value) {
+    if (selectedIds.has(row.tdxh)) {
+      tableRef.value?.toggleRowSelection(row, true);
+    }
+  }
 }
 
 type TD_ITEM = { tdxh: number; tdmc: string; bd: string };
@@ -111,6 +123,22 @@ function moveTier(
   }
 }
 
+// 判断是否选中整梯队
+function isWholeTierSelected(
+  list: TD_ITEM[],
+  selected: TD_ITEM[],
+  tierNo: number
+): boolean {
+  const [s, e] = getTierRange(list, tierNo);
+  if (s === -1) return false;
+  const tierIds = new Set(list.slice(s, e).map(r => r.tdxh));
+  const selectedIds = new Set(selected.map(r => r.tdxh));
+  return (
+    tierIds.size === selectedIds.size &&
+    [...tierIds].every(tdxh => selectedIds.has(tdxh))
+  );
+}
+
 //移动梯队内部队
 function moveUnitsWithinTier(
   list: TD_ITEM[],
@@ -151,7 +179,6 @@ function moveSelected(
 ): TD_ITEM[] {
   if (!selected.length) return list;
 
-  // ① 必须同一梯队
   const tierNo = assertSameTier(selected);
   if (tierNo === -1) {
     ElMessage.warning('不能跨梯队移动');
@@ -159,27 +186,48 @@ function moveSelected(
   }
   if (tierNo === null) return list;
 
-  // ② 判断是否选中了该梯队的全部行
-  const [s, e] = getTierRange(list, tierNo);
-  const tierIds = new Set(list.slice(s, e).map(r => r.tdxh));
-  const selectedIds = new Set(selected.map(r => r.tdxh));
+  const wholeTier = isWholeTierSelected(list, selected, tierNo);
 
-  const isWholeTierSelected =
-    tierIds.size === selectedIds.size &&
-    [...tierIds].every(tdxh => selectedIds.has(tdxh));
-
-  // ③ 分流
-  if (isWholeTierSelected) {
+  // A) 选中整梯队：提示“梯队到顶/到底”
+  if (wholeTier) {
+    const [s, e] = getTierRange(list, tierNo);
+    if (dir === 'up' && s === 0) {
+      ElMessage.info('已到最前梯队，无法上移');
+      return list;
+    }
+    if (dir === 'down' && e >= list.length) {
+      ElMessage.info('已到最后梯队，无法下移');
+      return list;
+    }
     return moveTier(list, selected, dir);
-  } else {
-    return moveUnitsWithinTier(list, selected, dir);
   }
+
+  // B) 选中部分：提示“本梯队内到顶/到底”
+  const [s, e] = getTierRange(list, tierNo);
+  const selectedId = new Set(selected.map(r => r.tdxh));
+
+  if (dir === 'up') {
+    // 如果选中集合里包含本梯队第一行，那么整体无法再上移（至少第一行动不了）
+    if (selectedId.has(list[s].tdxh)) {
+      ElMessage.info('已到本梯队顶部，无法上移');
+      return list;
+    }
+  } else {
+    // 如果选中集合里包含本梯队最后一行，那么整体无法再下移
+    if (selectedId.has(list[e - 1].tdxh)) {
+      ElMessage.info('已到本梯队底部，无法下移');
+      return list;
+    }
+  }
+
+  return moveUnitsWithinTier(list, selected, dir);
 }
 </script>
 
 <template>
   <div>
     <el-table
+      ref="tableRef"
       :data="tableData"
       row-key="tdxh"
       @selection-change="onSelectionChange"
