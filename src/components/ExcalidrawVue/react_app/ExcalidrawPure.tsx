@@ -31,6 +31,8 @@ export type ExcalidrawVueProps = {
   blockShortcuts?: boolean;
   /** 是否拦截右键/菜单（默认 false） */
   blockContextMenu?: boolean;
+  /* 是否拦截左键双击菜单 */
+  blockDoubleClick?: boolean;
 };
 
 /** 初始样式 */
@@ -52,7 +54,8 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
   useBlockShortcutsAndContext(containerRef, {
     blockKeyboard: props.blockShortcuts ?? false,
     blockContextMenu: props.blockContextMenu ?? false,
-    blockRightClick: props.blockContextMenu ?? false
+    blockRightClick: props.blockContextMenu ?? false,
+    blockDoubleClick: props.blockDoubleClick ?? false
   });
   // 等动画结束/布局稳定后 refresh
   const handleAPI = createHandleAPI(containerRef, apiRef, initOnce);

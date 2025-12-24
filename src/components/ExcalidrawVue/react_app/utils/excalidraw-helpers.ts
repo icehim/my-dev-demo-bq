@@ -128,12 +128,13 @@ export function createHandleAPI(
   };
 }
 
-/** 禁用快捷键 & 右键（容器级，捕获阶段拦截） */
+/** 禁用快捷键 & 右键 & 左键双击（容器级，捕获阶段拦截） */
 
 type BlockOpts = {
   blockKeyboard?: boolean;
   blockContextMenu?: boolean;
   blockRightClick?: boolean;
+  blockDoubleClick?: boolean;
 };
 
 export function useBlockShortcutsAndContext(
@@ -141,7 +142,8 @@ export function useBlockShortcutsAndContext(
   opts: BlockOpts = {
     blockKeyboard: false,
     blockContextMenu: false,
-    blockRightClick: false
+    blockRightClick: false,
+    blockDoubleClick: false
   }
 ) {
   useEffect(() => {
@@ -153,34 +155,61 @@ export function useBlockShortcutsAndContext(
       e.stopPropagation();
     };
 
+    const stopProp = (e: Event) => {
+      e.stopPropagation();
+    };
+
     const onKeyDown = (e: KeyboardEvent) => {
-      // 拦截常见快捷键（Delete/Backspace/Ctrl/Cmd 组合等）
       if (
         e.key === 'Delete' ||
         e.key === 'Backspace' ||
         e.key === 'Escape' ||
         e.ctrlKey ||
         e.metaKey ||
-        e.altKey // 基本就把快捷键都拦了
-      )
+        e.altKey
+      ) {
         stopAll(e);
+      }
     };
 
-    // 用 capture=true，优先于内部处理
+    // ✅ 右键按下：只拦传播，别 preventDefault（避免误伤 dblclick）
+    const onPointerDown = (e: PointerEvent) => {
+      const isRight = e.button === 2 || ((e.buttons ?? 0) & 2) === 2;
+      if (!isRight) return;
+      stopProp(e);
+    };
+
+    // ✅ 左键双击拦截（只拦画布区）
+    const onDblClick = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+
+      const target = e.target as HTMLElement | null;
+
+      // 放行输入/编辑区域
+      if (target?.closest?.("input, textarea, [contenteditable='true']"))
+        return;
+
+      // 只拦画布
+      const inCanvas = !!target?.closest?.('.excalidraw__canvas');
+      if (!inCanvas) return;
+
+      stopAll(e);
+    };
+
+    // ===== 绑定 =====
     if (opts.blockKeyboard)
       el.addEventListener('keydown', onKeyDown, { capture: true });
+
     if (opts.blockContextMenu)
       el.addEventListener('contextmenu', stopAll, { capture: true });
-    if (opts.blockRightClick)
-      el.addEventListener(
-        'pointerdown',
-        (e: any) => {
-          if (e.button === 2) stopAll(e); // 右键按下
-        },
-        { capture: true }
-      );
 
-    // 有些菜单是下拉层，保险起见也拦一下（存在就禁用）
+    if (opts.blockRightClick)
+      el.addEventListener('pointerdown', onPointerDown, { capture: true });
+
+    if (opts.blockDoubleClick)
+      el.addEventListener('dblclick', onDblClick, { capture: true });
+
+    // 下拉菜单兜底
     const killDropdown = (ev: Event) => {
       const target = ev.target as HTMLElement;
       if (target?.closest?.('.excalidraw .dropdown-menu')) stopAll(ev);
@@ -191,14 +220,22 @@ export function useBlockShortcutsAndContext(
     return () => {
       if (opts.blockKeyboard)
         el.removeEventListener('keydown', onKeyDown, { capture: true } as any);
+
       if (opts.blockContextMenu)
         el.removeEventListener('contextmenu', stopAll, {
           capture: true
         } as any);
+
       if (opts.blockRightClick)
-        el.removeEventListener('pointerdown', () => {}, {
+        el.removeEventListener('pointerdown', onPointerDown, {
           capture: true
         } as any);
+
+      if (opts.blockDoubleClick)
+        el.removeEventListener('dblclick', onDblClick, {
+          capture: true
+        } as any);
+
       document.removeEventListener('pointerdown', killDropdown, {
         capture: true
       } as any);
@@ -206,5 +243,11 @@ export function useBlockShortcutsAndContext(
         capture: true
       } as any);
     };
-  }, [containerRef]);
+  }, [
+    containerRef,
+    opts.blockKeyboard,
+    opts.blockContextMenu,
+    opts.blockRightClick,
+    opts.blockDoubleClick
+  ]);
 }
