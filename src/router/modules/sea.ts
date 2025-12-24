@@ -57,7 +57,7 @@ export default {
     {
       path: '/sea/advsearch',
       name: 'advSearch',
-      component: () => import('@/views/sea/advSearch/index.vue'),
+      component: () => import('@/views/sea/advSearch/editTable.vue'),
       meta: {
         title: '高级搜索'
       }
