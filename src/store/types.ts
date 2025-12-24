@@ -1,4 +1,4 @@
-import type { RouteRecordName } from 'vue-router';
+import type { RouteRecordName } from "vue-router";
 
 export type cacheType = {
   mode: string;
@@ -20,6 +20,7 @@ export type appType = {
   layout: string;
   device: string;
   viewportSize: { width: number; height: number };
+  sortSwap: boolean;
 };
 
 export type multiType = {
