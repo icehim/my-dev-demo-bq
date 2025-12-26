@@ -129,6 +129,7 @@ const handleTest = () => {
       :onSceneChange="handleSceneChange"
       :blockShortcuts="true"
       :blockContextMenu="true"
+      :blockDoubleClick="true"
     />
     <el-card class="w-[calc(100%-1208px)]" shadow="never">
       <el-card shadow="never" header="详细信息">
