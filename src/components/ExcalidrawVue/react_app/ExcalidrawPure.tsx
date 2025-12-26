@@ -24,6 +24,14 @@ export type ExcalidrawVueProps = {
     appState: any;
     files: Record<string, any>;
   }) => void;
+  onExternalImageDropSuccess?: (payload: any) => void;
+  onElementsDeleted?: (payload: {
+    deleted: Array<{
+      elementId: string;
+      type: string;
+      customData?: any;
+    }>;
+  }) => void;
   /** 是否让 Excalidraw 接管全局键盘（默认 false） */
   handleKeyboardGlobally?: boolean;
   /** 是否拦截快捷键（默认 false） */
@@ -47,7 +55,8 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const initOnce = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
-
+  // 用来记上次 isDeleted 状态，防重复
+  const prevDeletedMapRef = useRef<Map<string, boolean>>(new Map());
   // drop 时拿到的 payload（来自 el-tree img dragstart）
   const lastDropPayloadRef = useRef<any>(null);
 
@@ -117,6 +126,33 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
     appState: any,
     files: any
   ) => {
+    const prevMap = prevDeletedMapRef.current;
+    const deletedFromTree: Array<any> = [];
+
+    for (const el of elements as any[]) {
+      const prev = prevMap.get(el.id) ?? false;
+      const curr = !!el.isDeleted;
+
+      // 只抓 “第一次变成 deleted”
+      if (!prev && curr) {
+        if (el.customData?.fromTree === true) {
+          deletedFromTree.push(el);
+        }
+      }
+
+      prevMap.set(el.id, curr);
+    }
+
+    if (deletedFromTree.length) {
+      props.onElementsDeleted?.({
+        deleted: deletedFromTree.map(el => ({
+          elementId: el.id,
+          type: el.type,
+          customData: el.customData
+        }))
+      });
+    }
+
     // 先透传给 Vue（你原来的逻辑）
     // @ts-ignore
     emitSceneChange(elements, appState, files);
@@ -151,6 +187,7 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
     });
 
     if (!toPatch.length || !apiRef.current) return;
+    props.onExternalImageDropSuccess?.(payload);
 
     const patched = elements.map((el: any) => {
       const hit = toPatch.find((x: any) => x.id === el.id);

@@ -70,11 +70,40 @@ export function replaceHelpDialogTexts(root: ParentNode = document) {
     if (mapped && raw !== mapped) labelDiv.textContent = mapped;
   });
 }
+/** ===== 补丁：隐藏撤销重做按钮 ===== */
+function ensureHideUndoRedoStyle() {
+  const id = 'excalidraw-hide-undo-redo';
+  if (document.getElementById(id)) return;
+
+  const style = document.createElement('style');
+  style.id = id;
+
+  // 注意：选择器可能因版本不同略有差异，所以给多个兜底
+  style.textContent = `
+/* 兜底1：底部浮动操作区里的 undo/redo（常见） */
+.excalidraw .App-toolbar__undo-redo,
+.excalidraw .undo-redo-buttons,
+.excalidraw [data-testid="undo-button"],
+.excalidraw [data-testid="redo-button"] {
+  display: none !important;
+}
+
+/* 兜底2：如果 undo/redo 在 footer/toolbar 里 */
+.excalidraw footer [data-testid="undo-button"],
+.excalidraw footer [data-testid="redo-button"],
+.excalidraw .footer [data-testid="undo-button"],
+.excalidraw .footer [data-testid="redo-button"] {
+  display: none !important;
+}
+`;
+  document.head.appendChild(style);
+}
 
 /** ===== 组合：统一跑所有补丁 ===== */
 export function runAllPatches(root: ParentNode = document) {
   replaceContextMenuTexts(root);
   replaceHelpDialogTexts(root);
+  ensureHideUndoRedoStyle();
 }
 
 /** ===== React 风格的“补丁挂载”hook（像 Vue 的 onMounted + watcher） ===== */
@@ -161,7 +190,7 @@ export function useBlockShortcutsAndContext(
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (
-        e.key === 'Delete' ||
+        // e.key === 'Delete' ||
         e.key === 'Backspace' ||
         e.key === 'Escape' ||
         e.ctrlKey ||

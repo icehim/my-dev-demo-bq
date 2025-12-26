@@ -70,6 +70,13 @@ function onImgDragStart(e: DragEvent, data: TreeNode) {
   // 可选：拖拽效果
   e.dataTransfer.effectAllowed = 'copy';
 }
+
+function onElementsDeleted(payload: { deleted: any[] }) {
+  console.log('删除', payload);
+}
+function onExternalImageDropSuccess(payload) {
+  console.log('添加', payload);
+}
 </script>
 
 <template>
@@ -77,6 +84,8 @@ function onImgDragStart(e: DragEvent, data: TreeNode) {
     <excalidraw-vue
       :onApiReady="onApiReady"
       :onSceneChange="handleSceneChange"
+      :onElementsDeleted="onElementsDeleted"
+      :onExternalImageDropSuccess="onExternalImageDropSuccess"
       :blockShortcuts="true"
       :blockContextMenu="true"
       :blockDoubleClick="true"
