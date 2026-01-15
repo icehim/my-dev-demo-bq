@@ -3,12 +3,13 @@
     <div style="display: flex; gap: 8px; margin-bottom: 8px">
       <el-button type="primary" @click="moveUp">上移</el-button>
       <el-button type="primary" @click="moveDown">下移</el-button>
+      <el-button type="primary" @click="saveSort">保存排序</el-button>
     </div>
     <vxe-grid
       ref="gridRef"
       border
-      height="770"
-      :row-config="{ isHover: true, keyField: 'tdxh' }"
+      height="1000"
+      :row-config="{ isHover: true, keyField: 'id' }"
       :column-config="{ resizable: true }"
       :scroll-y="{ enabled: true }"
       :merge-cells="mergeCells"
@@ -17,15 +18,19 @@
     />
   </div>
 </template>
-<script lang="ts" setup>
+<script lang="tsx" setup>
 import { nextTick, ref } from 'vue';
 import { VxeGridInstance, VxeGridPropTypes } from 'vxe-table';
 import { ElMessage } from 'element-plus';
+import { tableData } from '@/views/sea/tableMerge/data';
 interface RowVO {
+  id: string; // ✅ 后端主键
+  sort?: number;
   tdxh?: number;
   tdmc: string;
   name: string;
   xqId: string;
+  date?: string;
 }
 const gridRef = ref<VxeGridInstance<RowVO>>();
 function getCheckedRows(): RowVO[] {
@@ -33,199 +38,247 @@ function getCheckedRows(): RowVO[] {
   if (!$grid) return [];
   return ($grid.getCheckboxRecords?.() as RowVO[]) ?? [];
 }
-async function moveUp() {
-  await move('up');
-}
-async function moveDown() {
-  await move('down');
-}
-function renumberTdmcOnly() {
-  // ✅ 按当前 data 顺序，把梯队块重新编号为 第1梯队、第2梯队...
-  let tierNo = 0;
-  let last = '';
-  for (const r of data.value) {
-    if (r.tdmc !== last) {
-      tierNo += 1;
-      last = r.tdmc;
+
+// 只负责“展示梯队名全局递增”的重编号函数（不动 id）:这个函数会根据 当前 data 顺序，按 xqId 分组顺序 + 相邻段，重新把 tdmc 改成 第1梯队、第2梯队…（全局不重复、连续递增）。
+function renumberDisplayTiersByOrder(list: RowVO[]): RowVO[] {
+  let tierId = 1;
+  let rowSeq = 1;
+
+  let prevTdmc: string | null = null;
+  for (const r of list) {
+    // 每当 tdmc 变化，说明进入下一个梯队块
+    if (prevTdmc !== r.tdmc) {
+      prevTdmc = r.tdmc;
+      // 新块开始：tierId 不变在本行赋值后再 ++，更直观
+      r.tdmc = `第${tierId}梯队`;
+      tierId++;
+    } else {
+      // 同一块内保持同名
+      r.tdmc = `第${tierId - 1}梯队`;
     }
-    r.tdmc = `第${tierNo}梯队`;
+    r.tdxh = rowSeq++;
   }
+
+  return list;
 }
-function getTierBlockRangeByTdmc(tdmc: string) {
-  const rows = data.value;
-  const idxs: number[] = [];
-  for (let i = 0; i < rows.length; i++) {
-    if (rows[i].tdmc === tdmc) idxs.push(i);
-  }
-  if (!idxs.length) return null;
-  // 要求连续块
+function unique<T>(arr: T[]) {
+  return Array.from(new Set(arr));
+}
+
+function isAllSelectedInTier(allRows: RowVO[], checked: RowVO[], tdmc: string) {
+  const tierAll = allRows.filter(r => r.tdmc === tdmc);
+  const tierChecked = checked.filter(r => r.tdmc === tdmc);
+  return tierAll.length > 0 && tierChecked.length === tierAll.length;
+}
+
+// 梯队内：把选中行作为“块”上移/下移一格（保持相对顺序），且不跨梯队
+function moveSelectedRowsWithinTier(
+  allRows: RowVO[],
+  checkedIds: Set<RowVO['id']>,
+  tdmc: string,
+  dir: 'up' | 'down'
+) {
+  // 只处理该梯队段的连续区间
+  const idxs = allRows
+    .map((r, i) => ({ r, i }))
+    .filter(x => x.r.tdmc === tdmc)
+    .map(x => x.i);
+
+  if (!idxs.length) return false;
+
   const start = idxs[0];
   const end = idxs[idxs.length - 1];
-  for (let i = start; i <= end; i++) {
-    if (rows[i].tdmc !== tdmc) {
-      return null; // 不连续：不支持整梯队移动（也不建议出现）
-    }
-  }
-  return { start, end, count: end - start + 1 };
-}
-function getCheckedIds(): number[] {
-  return getCheckedRows()
-    .map(r => r.tdxh)
-    .filter((v): v is number => typeof v === 'number');
-}
-function restoreCheckedByIds(ids: number[]) {
-  const $grid = gridRef.value;
-  if (!$grid) return;
-  $grid.clearCheckboxRow?.();
-  const set = new Set(ids);
-  const rowsToCheck = data.value.filter(r => r.tdxh != null && set.has(r.tdxh));
-  if (rowsToCheck.length) {
-    $grid.setCheckboxRow?.(rowsToCheck, true);
-  }
-}
-function moveWholeTierOneStep(tierTdmc: string, direction: 'up' | 'down') {
-  const rows = data.value;
-  const cur = getTierBlockRangeByTdmc(tierTdmc);
-  if (!cur) return;
-  if (direction === 'up') {
-    if (cur.start === 0) return;
-    // 找到上一个梯队块（紧挨着 cur.start-1 的那个 tdmc）
-    const prevTdmc = rows[cur.start - 1].tdmc;
-    const prev = getTierBlockRangeByTdmc(prevTdmc);
-    if (!prev) return;
-    const prevBlock = rows.slice(prev.start, prev.end + 1);
-    const curBlock = rows.slice(cur.start, cur.end + 1);
-    rows.splice(prev.start, prev.count + cur.count, ...curBlock, ...prevBlock);
-  } else {
-    if (cur.end === rows.length - 1) return;
-    // 找到下一个梯队块（紧挨着 cur.end+1 的那个 tdmc）
-    const nextTdmc = rows[cur.end + 1].tdmc;
-    const next = getTierBlockRangeByTdmc(nextTdmc);
-    if (!next) return;
-    const curBlock = rows.slice(cur.start, cur.end + 1);
-    const nextBlock = rows.slice(next.start, next.end + 1);
-    rows.splice(cur.start, cur.count + next.count, ...nextBlock, ...curBlock);
-  }
-  data.value = rows;
-}
-function moveRowsWithinTierOneStep(
-  tierTdmc: string,
-  selectedRefs: RowVO[],
-  direction: 'up' | 'down'
-) {
-  const rows = data.value;
-  const selSet = new Set(selectedRefs);
-  // 只允许在 tierTdmc 范围内移动
-  const range = getTierBlockRangeByTdmc(tierTdmc);
-  if (!range) return;
-  const { start, end } = range;
-  // 选中行在 data 中的索引（只取该梯队内）
-  const selectedIdx: number[] = [];
-  for (let i = start; i <= end; i++) {
-    if (selSet.has(rows[i])) selectedIdx.push(i);
-  }
-  if (!selectedIdx.length) return;
-  if (direction === 'up') {
-    // 从上往下遍历
-    for (const i of selectedIdx) {
-      const prev = i - 1;
-      if (prev < start) continue; // ✅ 不允许跨梯队
-      if (selSet.has(rows[prev])) continue; // 保持块移动效果
-      [rows[prev], rows[i]] = [rows[i], rows[prev]];
-    }
-  } else {
-    // 从下往上遍历
-    for (let t = selectedIdx.length - 1; t >= 0; t--) {
-      const i = selectedIdx[t];
-      const next = i + 1;
-      if (next > end) continue; // ✅ 不允许跨梯队
-      if (selSet.has(rows[next])) continue;
-      [rows[next], rows[i]] = [rows[i], rows[next]];
-    }
-  }
-  data.value = rows;
-}
-async function refreshAfterMove(selectedIds: number[]) {
-  // ✅ 只重算 tdmc（不动 tdxh）
-  renumberTdmcOnly();
-  const $grid = gridRef.value;
-  // ✅ 虚拟滚动下建议同步一下（没有也不会报错）
-  if ($grid?.reloadData) {
-    await $grid.reloadData(data.value as any);
-  }
-  await nextTick();
-  requestAnimationFrame(() => {
-    buildMergeCellsByVisible();
-    restoreCheckedByIds(selectedIds);
-  });
-}
-async function move(direction: 'up' | 'down') {
-  const selected = getCheckedRows();
 
-  // ✅ 1) 未选择
-  if (!selected.length) {
-    ElMessage.warning('请选择数据后再移动');
-    return;
-  }
+  let moved = false;
 
-  // ✅ 保存稳定主键（用于恢复勾选）
-  const selectedIds = getCheckedIds();
-
-  // ✅ 2) 不允许跨梯队选择
-  const tierSet = new Set(selected.map(r => r.tdmc));
-  if (tierSet.size !== 1) {
-    ElMessage.warning('不允许跨梯队移动');
-    return;
-  }
-
-  const tierTdmc = selected[0].tdmc;
-  const range = getTierBlockRangeByTdmc(tierTdmc);
-  if (!range) {
-    ElMessage.warning('该梯队数据不是连续块，无法移动');
-    return;
-  }
-
-  // ✅ 是否整梯队移动
-  const isWholeTier = selected.length === range.count;
-
-  // ✅ 3) 到顶/到底不能移动（分整梯队 vs 梯队内）
-  if (isWholeTier) {
-    if (direction === 'up' && range.start === 0) {
-      ElMessage.warning('已到最顶层，不能上移');
-      return;
-    }
-    if (direction === 'down' && range.end === data.value.length - 1) {
-      ElMessage.warning('已到最底层，不能下移');
-      return;
-    }
-    moveWholeTierOneStep(tierTdmc, direction);
-  } else {
-    // 梯队内行移动边界判断：看选中行是否顶住梯队边界
-    const selSet = new Set(selected);
-    let minIdx = Infinity;
-    let maxIdx = -Infinity;
-
-    for (let i = range.start; i <= range.end; i++) {
-      if (selSet.has(data.value[i])) {
-        if (i < minIdx) minIdx = i;
-        if (i > maxIdx) maxIdx = i;
+  if (dir === 'up') {
+    for (let i = start + 1; i <= end; i++) {
+      const curSel = checkedIds.has(allRows[i].id);
+      const prevSel = checkedIds.has(allRows[i - 1].id);
+      if (curSel && !prevSel) {
+        const tmp = allRows[i - 1];
+        allRows[i - 1] = allRows[i];
+        allRows[i] = tmp;
+        moved = true;
       }
     }
-
-    if (direction === 'up' && minIdx === range.start) {
-      ElMessage.warning('已到最顶层，不能上移');
-      return;
+  } else {
+    for (let i = end - 1; i >= start; i--) {
+      const curSel = checkedIds.has(allRows[i].id);
+      const nextSel = checkedIds.has(allRows[i + 1].id);
+      if (curSel && !nextSel) {
+        const tmp = allRows[i + 1];
+        allRows[i + 1] = allRows[i];
+        allRows[i] = tmp;
+        moved = true;
+      }
     }
-    if (direction === 'down' && maxIdx === range.end) {
-      ElMessage.warning('已到最底层，不能下移');
-      return;
-    }
-
-    moveRowsWithinTierOneStep(tierTdmc, selected, direction);
   }
 
-  await refreshAfterMove(selectedIds);
+  return moved;
 }
+
+// 整梯队：与相邻梯队段交换（仅同 xqId 内）
+function swapTierBlock(allRows: RowVO[], tdmc: string, dir: 'up' | 'down') {
+  // 当前梯队块区间
+  const curIdxs = allRows
+    .map((r, i) => ({ r, i }))
+    .filter(x => x.r.tdmc === tdmc)
+    .map(x => x.i);
+
+  if (!curIdxs.length) return false;
+  const curStart = curIdxs[0];
+  const curEnd = curIdxs[curIdxs.length - 1];
+
+  if (dir === 'up') {
+    if (curStart === 0) return false;
+    const prevTdmc = allRows[curStart - 1].tdmc;
+
+    // 找 prev 块起止
+    let prevEnd = curStart - 1;
+    let prevStart = prevEnd;
+    while (prevStart - 1 >= 0 && allRows[prevStart - 1].tdmc === prevTdmc)
+      prevStart--;
+
+    const prevBlock = allRows.slice(prevStart, prevEnd + 1);
+    const curBlock = allRows.slice(curStart, curEnd + 1);
+
+    allRows.splice(
+      prevStart,
+      prevBlock.length + curBlock.length,
+      ...curBlock,
+      ...prevBlock
+    );
+    return true;
+  } else {
+    if (curEnd === allRows.length - 1) return false;
+    const nextTdmc = allRows[curEnd + 1].tdmc;
+
+    let nextStart = curEnd + 1;
+    let nextEnd = nextStart;
+    while (
+      nextEnd + 1 < allRows.length &&
+      allRows[nextEnd + 1].tdmc === nextTdmc
+    )
+      nextEnd++;
+
+    const curBlock = allRows.slice(curStart, curEnd + 1);
+    const nextBlock = allRows.slice(nextStart, nextEnd + 1);
+
+    allRows.splice(
+      curStart,
+      curBlock.length + nextBlock.length,
+      ...nextBlock,
+      ...curBlock
+    );
+    return true;
+  }
+}
+
+async function afterMoveAndRefresh(checked: RowVO[]) {
+  // 1) 重新编号（保证第1..第N递增不重复）
+  data.value = renumberDisplayTiersByOrder([...data.value]);
+
+  // 2) 等待渲染并重算合并
+  await nextTick();
+  requestAnimationFrame(() => buildMergeCellsByVisible());
+
+  // 3) 重新勾选（按 id）
+  const $grid = gridRef.value;
+  if ($grid?.setCheckboxRow) {
+    // 清空后再勾选（避免 vxe 内部状态不同步）
+    $grid.setAllCheckboxRow?.(false);
+    for (const r of checked) {
+      const row = data.value.find(x => x.id === r.id);
+      if (row) $grid.setCheckboxRow(row, true);
+    }
+  }
+}
+
+async function moveUp() {
+  const $grid = gridRef.value;
+  if (!$grid) return;
+
+  const checked = getCheckedRows();
+  if (!checked.length) {
+    ElMessage.warning('请先勾选要移动的数据');
+    return;
+  }
+
+  const tdList = unique(checked.map(r => r.tdmc));
+
+  // 不能跨梯队移动
+  if (tdList.length !== 1) {
+    ElMessage.warning('不能跨梯队移动，请只选择同一梯队的数据');
+    return;
+  }
+
+  const tdmc = tdList[0];
+
+  const checkedIds = new Set(checked.map(r => r.id));
+
+  // 判断是否全选该梯队：全选则视为“整梯队移动”
+  const isAll = isAllSelectedInTier(data.value, checked, tdmc);
+
+  let moved = false;
+  if (isAll) {
+    moved = swapTierBlock(data.value, tdmc, 'up');
+    if (!moved) {
+      ElMessage.info('已到最上方梯队，无法上移');
+      return;
+    }
+  } else {
+    moved = moveSelectedRowsWithinTier(data.value, checkedIds, tdmc, 'up');
+    if (!moved) {
+      ElMessage.info('已到梯队顶部，无法上移');
+      return;
+    }
+  }
+
+  await afterMoveAndRefresh(checked);
+}
+
+async function moveDown() {
+  const $grid = gridRef.value;
+  if (!$grid) return;
+
+  const checked = getCheckedRows();
+  if (!checked.length) {
+    ElMessage.warning('请先勾选要移动的数据');
+    return;
+  }
+
+  const tdList = unique(checked.map(r => r.tdmc));
+
+  if (tdList.length !== 1) {
+    ElMessage.warning('不能跨梯队移动，请只选择同一梯队的数据');
+    return;
+  }
+
+  const tdmc = tdList[0];
+
+  const checkedIds = new Set(checked.map(r => r.id));
+
+  const isAll = isAllSelectedInTier(data.value, checked, tdmc);
+
+  let moved = false;
+  if (isAll) {
+    moved = swapTierBlock(data.value, tdmc, 'down');
+    if (!moved) {
+      ElMessage.info('已到最下方梯队，无法下移');
+      return;
+    }
+  } else {
+    moved = moveSelectedRowsWithinTier(data.value, checkedIds, tdmc, 'down');
+    if (!moved) {
+      ElMessage.info('已到梯队底部，无法下移');
+      return;
+    }
+  }
+
+  await afterMoveAndRefresh(checked);
+}
+
 function parseTdmc(tdmc: any): number | null {
   if (tdmc == null) return null;
   if (typeof tdmc === 'number') return tdmc;
@@ -233,51 +286,46 @@ function parseTdmc(tdmc: any): number | null {
   return m ? Number(m[1]) : null;
 }
 /**
- * ✅ 预处理 tableData：
- * - 按 xqId 分组并保持首次出现顺序
- * - 每组内按“相邻 tdmc”切合并段
- * - 段 => 全局递增编号，写回 tdmc
+ * ✅ 顺序保持型 normalize：
+ * - 不按 xqId 分组、不重排
+ * - 只沿着当前数组顺序扫描
+ * - 按“相邻 tdmc(数字) 变化”切段
+ * - 给每个段分配全局递增且不重复的展示梯队名：第1、第2...梯队
+ * - 生成行唯一 tdxh（仅展示用）
  */
 function normalizeTableData(raw: RowVO[]): RowVO[] {
-  // 1) 按 xqId 分组（保持首次出现顺序）
-  const order: string[] = [];
-  const groups = new Map<string, RowVO[]>();
-  for (const r of raw) {
-    const key = r.xqId;
-    if (!groups.has(key)) {
-      groups.set(key, []);
-      order.push(key);
-    }
-    groups.get(key)!.push({ ...r }); // clone
-  }
-  // 2) 两个编号：
-  // rowId：每一行唯一（tdxh）
-  // tierId：每个“可合并段”唯一（tdmc）
+  const rows = raw.map(r => ({ ...r })); // clone
+
   let rowId = 1;
   let tierId = 1;
-  const result: RowVO[] = [];
-  for (const key of order) {
-    const rows = groups.get(key)!;
-    if (!rows.length) continue;
-    let segStart = 0;
-    let prev = parseTdmc(rows[0].tdmc);
-    for (let i = 1; i <= rows.length; i++) {
-      const cur = i < rows.length ? parseTdmc(rows[i].tdmc) : null;
-      const isEnd = i === rows.length;
-      // 一个“可合并段”结束：分配一个新的梯队号 tierId
-      if (isEnd || cur !== prev) {
-        const thisTier = tierId++;
-        for (let k = segStart; k < i; k++) {
-          rows[k].tdxh = rowId++; // ✅ 行唯一主键
-          rows[k].tdmc = `第${thisTier}梯队`; // ✅ 用于合并/展示（可重复）
-        }
-        segStart = i;
-        prev = cur;
+
+  let segStart = 0;
+  let prev = rows.length ? parseTdmc(rows[0].tdmc) : null;
+
+  for (let i = 1; i <= rows.length; i++) {
+    const cur = i < rows.length ? parseTdmc(rows[i].tdmc) : null;
+    const isEnd = i === rows.length;
+
+    // 相邻 tdmc 数字不同 => 新段
+    if (isEnd || cur !== prev) {
+      const thisTier = tierId++;
+      for (let k = segStart; k < i; k++) {
+        rows[k].tdxh = rowId++;
+        rows[k].tdmc = `第${thisTier}梯队`;
       }
+      segStart = i;
+      prev = cur;
     }
-    result.push(...rows);
   }
-  return result;
+
+  return rows;
+}
+function onTierDateChange(anchorRow: RowVO, val: any) {
+  // 同梯队共享：把该 tdmc 下所有行 date 都更新成同一个值
+  const tdmc = anchorRow.tdmc;
+  for (const r of data.value) {
+    if (r.tdmc === tdmc) r.date = val;
+  }
 }
 /**
  * ✅ 数据、列、合并规则都拆开（最稳）
@@ -286,10 +334,39 @@ const data = ref<RowVO[]>([]);
 const columns: VxeGridPropTypes.Columns<RowVO> = [
   { type: 'checkbox', width: 60 },
   { type: 'seq', width: 70 },
-  { field: 'tdxh', title: 'id' },
+  { field: 'id', title: 'id', width: 120 },
   { field: 'tdmc', title: '梯队名称' },
-  { field: 'name', title: '名称' }
+  { field: 'name', title: '名称' },
+  {
+    field: 'date',
+    title: '日期',
+    slots: {
+      default: ({ row, rowIndex }) => {
+        const $grid = gridRef.value;
+        const { visibleData } = $grid?.getTableData?.() ?? {
+          visibleData: [] as RowVO[]
+        };
+
+        // 不是该梯队首行：不渲染（避免重复组件/状态异常）
+        if (!isTierFirstRow(visibleData, rowIndex)) return null;
+
+        return (
+          <el-date-picker
+            modelValue={row.date}
+            type="datetime"
+            placeholder="请选择日期"
+            onUpdate:modelValue={(val: any) => onTierDateChange(row, val)}
+          />
+        );
+      }
+    }
+  }
 ];
+// 只在“梯队的首行”渲染日期组件
+function isTierFirstRow(visibleData: RowVO[], rowIndex: number) {
+  if (rowIndex === 0) return true;
+  return visibleData[rowIndex - 1]?.tdmc !== visibleData[rowIndex]?.tdmc;
+}
 // vxe merge-cells 需要的结构
 const mergeCells = ref<
   { row: number; col: number; rowspan: number; colspan: number }[]
@@ -298,47 +375,53 @@ const mergeCells = ref<
  * 你原来的规则：相邻相同值纵向合并（rowspan）
  * 这里示例只合并 name；需要多字段就加进去即可
  */
-const spanFields = ['tdmc'] as const;
+const mergeByTdmcFields = ['tdmc', 'date'] as const;
 function buildMergeCellsByVisible() {
   const $grid = gridRef.value;
   if (!$grid) return;
-  // 当前可视数据（排序/筛选/虚拟滚动后的渲染顺序）
+
   const { visibleData } = $grid.getTableData();
-  // ✅ 叶子列（可视列），用于正确计算 mergeCells.col（分组表头也不会错）
   const { visibleColumn } = $grid.getTableColumn();
+
   const result: {
     row: number;
     col: number;
     rowspan: number;
     colspan: number;
   }[] = [];
-  for (const field of spanFields) {
-    const colIndex = visibleColumn.findIndex(col => col.field === field);
-    if (colIndex < 0) continue;
-    let start = 0;
-    while (start < visibleData.length) {
-      const v = (visibleData[start] as any)?.[field];
-      if (v == null || v === '') {
-        start++;
-        continue;
-      }
-      let end = start + 1;
-      while (
-        end < visibleData.length &&
-        (visibleData[end] as any)?.[field] === v
-      ) {
-        end++;
-      }
-      const rowspan = end - start;
-      if (rowspan > 1) {
-        result.push({ row: start, col: colIndex, rowspan, colspan: 1 });
-      }
-      start = end;
+
+  // 1) 先按 tdmc 扫描出所有“段”（rowspan）
+  let start = 0;
+  while (start < visibleData.length) {
+    const tdmcVal = (visibleData[start] as any)?.tdmc;
+    if (tdmcVal == null || tdmcVal === '') {
+      start++;
+      continue;
     }
+
+    let end = start + 1;
+    while (
+      end < visibleData.length &&
+      (visibleData[end] as any)?.tdmc === tdmcVal
+    ) {
+      end++;
+    }
+
+    const rowspan = end - start;
+    if (rowspan > 1) {
+      // 2) 把同一个段的 rowspan 应用到 tdmc/date 等多个列
+      for (const field of mergeByTdmcFields) {
+        const colIndex = visibleColumn.findIndex(col => col.field === field);
+        if (colIndex >= 0) {
+          result.push({ row: start, col: colIndex, rowspan, colspan: 1 });
+        }
+      }
+    }
+
+    start = end;
   }
-  // ✅ 更新 mergeCells
+
   mergeCells.value = result;
-  // ✅ 某些版本需要强制刷新一下合并渲染（有就调，没有也不会报错）
   $grid.setMergeCells?.(result);
   $grid.recalculate?.();
 }
@@ -347,83 +430,7 @@ function buildMergeCellsByVisible() {
  */
 async function reloadAndMerge() {
   // ✅ 必须有连续相同值才会触发纵向合并
-  const raw: RowVO[] = [
-    {
-      tdmc: '第1梯队',
-      name: '1',
-      xqId: 'A'
-    },
-    {
-      tdmc: '第1梯队',
-      name: '2',
-      xqId: 'A'
-    },
-    {
-      tdmc: '第1梯队',
-      name: '3',
-      xqId: 'A'
-    },
-    {
-      tdmc: '第2梯队',
-      name: '4',
-      xqId: 'A'
-    },
-    {
-      tdmc: '第2梯队',
-      name: '5',
-      xqId: 'A'
-    },
-    {
-      tdmc: '第1梯队',
-      name: '6',
-      xqId: 'B'
-    },
-    {
-      tdmc: '第1梯队',
-      name: '7',
-      xqId: 'B'
-    },
-    {
-      tdmc: '第2梯队',
-      name: '8',
-      xqId: 'B'
-    },
-    {
-      tdmc: '第2梯队',
-      name: '9',
-      xqId: 'B'
-    },
-    {
-      tdmc: '第2梯队',
-      name: '10',
-      xqId: 'B'
-    },
-    {
-      tdmc: '第1梯队',
-      name: '11',
-      xqId: 'C'
-    },
-    {
-      tdmc: '第2梯队',
-      name: '12',
-      xqId: 'C'
-    },
-    {
-      tdmc: '第3梯队',
-      name: '13',
-      xqId: 'C'
-    },
-    {
-      tdmc: '第4梯队',
-      name: '14',
-      xqId: 'C'
-    },
-    {
-      tdmc: '第4梯队',
-      name: '15',
-      xqId: 'C'
-    }
-  ];
+  const raw: RowVO[] = tableData;
   data.value = normalizeTableData(raw);
   // ✅ 等待 Vue 渲染 + vxe 内部列/数据计算完成（虚拟表格常需要晚一拍）
   await nextTick();
@@ -431,5 +438,34 @@ async function reloadAndMerge() {
 }
 // 初始化：加载并合并
 reloadAndMerge();
+
+async function saveSort() {
+  if (!data.value.length) {
+    ElMessage.warning('暂无数据可保存');
+    return;
+  }
+
+  // 1) 生成 sort（全表 1..N）
+  const payload = data.value.map((row, idx) => {
+    const sort = idx + 1;
+    row.sort = sort; // 可选：回写到前端数据，方便你看
+    return { id: row.id, sort };
+  });
+
+  // 2) 调后端接口（你按实际项目替换）
+  // 下面用伪代码表示：await api.saveSort(payload)
+  try {
+    console.log('save sort payload:', payload);
+    console.log('data:', data.value);
+    // await saveTierSortApi(payload);
+
+    ElMessage.success('保存成功');
+
+    // ✅ 可选：保存成功后重新拉取一次（确保和后端一致）
+    // await reloadAndMerge();
+  } catch (e: any) {
+    ElMessage.error(e?.message ?? '保存失败');
+  }
+}
 </script>
 <style scoped></style>
