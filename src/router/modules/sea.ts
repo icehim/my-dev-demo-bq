@@ -61,6 +61,14 @@ export default {
       meta: {
         title: '高级搜索'
       }
+    },
+    {
+      path: '/sea/tableMerge',
+      name: 'tableMerge',
+      component: () => import('@/views/sea/tableMerge/index.vue'),
+      meta: {
+        title: '表格合并移动'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
