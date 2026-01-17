@@ -13,6 +13,7 @@ import {
 } from './utils/excalidraw-helpers';
 import { debounce } from '@pureadmin/utils';
 import type { NonDeletedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import { snapAngleTo0OrPI } from '@/components/ExcalidrawVue/react_app/utils/exca-algorithms';
 
 /** ======= 对外暴露的可选回调（给 Vue 传入） ======= */
 export type ExcalidrawVueProps = {
@@ -40,6 +41,8 @@ export type ExcalidrawVueProps = {
   blockContextMenu?: boolean;
   /* 是否拦截左键双击菜单 */
   blockDoubleClick?: boolean;
+  /** 是否禁用缩放 & 旋转（只允许 0 / PI） */
+  lockTransform?: boolean;
 };
 
 /** 初始样式 */
@@ -52,6 +55,20 @@ const initialData: ExcalidrawInitialDataState = {
 } as const;
 
 export default function ExcalidrawPure(props: ExcalidrawVueProps) {
+  const latestElementsRef = useRef<readonly NonDeletedExcalidrawElement[]>([]);
+  // 记录每个元素“允许的基准形态”：禁止缩放/旋转时用于回滚
+  const baselineRef = useRef<
+    Map<
+      string,
+      {
+        type: string;
+        width?: number;
+        height?: number;
+        angle?: number;
+        points?: any; // 线条/箭头等
+      }
+    >
+  >(new Map());
   const apiRef = useRef<ExcalidrawImperativeAPI | null>(null);
   const initOnce = useRef(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -120,12 +137,83 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
     return () => el.removeEventListener('drop', onDropCapture, true);
   }, []);
 
+  const handlePointerUp = () => {
+    if (!apiRef.current) return;
+
+    const elements = latestElementsRef.current as any[];
+    const baseline = baselineRef.current;
+
+    let changed = false;
+
+    const fixed = elements.map(el => {
+      if (el.isDeleted) return el;
+
+      let next = el;
+
+      // 1) 角度：只允许 0 / PI（松手吸附，动画就保留了）
+      const rawAngle = el.angle ?? 0;
+      const snapped = snapAngleTo0OrPI(rawAngle);
+      if (rawAngle !== snapped) {
+        next = { ...next, angle: snapped };
+        changed = true;
+      }
+
+      // 2) 禁缩放：回滚到 baseline（保留 x/y，所以拖动 OK）
+      const base = baseline.get(el.id);
+      if (!base) return next;
+
+      // 线条/箭头等：回滚 points
+      if (Array.isArray(el.points) && base.points) {
+        const same = JSON.stringify(el.points) === JSON.stringify(base.points);
+        if (!same) {
+          next = { ...next, points: JSON.parse(JSON.stringify(base.points)) };
+          changed = true;
+        }
+        return next;
+      }
+
+      // 普通元素：回滚 width/height
+      const targetW = base.width ?? el.width;
+      const targetH = base.height ?? el.height;
+      if (el.width !== targetW || el.height !== targetH) {
+        next = { ...next, width: targetW, height: targetH };
+        changed = true;
+      }
+
+      return next;
+    });
+
+    if (changed) {
+      apiRef.current.updateScene({ elements: fixed as any });
+    }
+  };
+
   // ✅ 2) onChange：等 fileId 回填后再 patch customData
   const handleChange = (
     elements: readonly NonDeletedExcalidrawElement[],
     appState: any,
     files: any
   ) => {
+    //记录最新 elements：
+    latestElementsRef.current = elements;
+    if (props.lockTransform) {
+      // 维护 baseline：只在首次出现时记录尺寸/points
+      const baseline = baselineRef.current;
+      for (const el of elements as any[]) {
+        if (el.isDeleted) continue;
+        if (!baseline.has(el.id)) {
+          baseline.set(el.id, {
+            type: el.type,
+            width: el.width,
+            height: el.height,
+            points: el.points
+              ? JSON.parse(JSON.stringify(el.points))
+              : undefined
+          });
+        }
+      }
+    }
+
     const prevMap = prevDeletedMapRef.current;
     const deletedFromTree: Array<any> = [];
 
@@ -135,6 +223,7 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
 
       // 只抓 “第一次变成 deleted”
       if (!prev && curr) {
+        baselineRef.current.delete(el.id); // ✅ 删除时清掉基准
         if (el.customData?.fromTree === true) {
           deletedFromTree.push(el);
         }
@@ -237,6 +326,7 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
         initialData={initialData}
         excalidrawAPI={handleAPIWithExpose}
         onChange={handleChange}
+        onPointerUp={handlePointerUp}
         handleKeyboardGlobally={props.handleKeyboardGlobally ?? false}
       >
         <MainMenu>

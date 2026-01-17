@@ -46,3 +46,25 @@ export function getGroupBoundingBox(
   const bbox = getElementsBBox(groupEls)!;
   return { ...bbox, count: groupEls.length, elements: groupEls };
 }
+
+const TWO_PI = Math.PI * 2;
+
+// 角度归一化
+function normalizeAngle(angle: number) {
+  return ((angle % TWO_PI) + TWO_PI) % TWO_PI;
+}
+
+function circularDistance(a: number, b: number) {
+  const diff = Math.abs(a - b);
+  return Math.min(diff, TWO_PI - diff);
+}
+
+// 元素旋转“吸附到 0 或 PI”
+export function snapAngleTo0OrPI(angle: number) {
+  const a = normalizeAngle(angle);
+
+  const d0 = circularDistance(a, 0);
+  const dPi = circularDistance(a, Math.PI);
+
+  return d0 <= dPi ? 0 : Math.PI;
+}
