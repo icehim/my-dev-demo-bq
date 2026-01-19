@@ -296,25 +296,26 @@ function parseTdmc(tdmc: any): number | null {
 function normalizeTableData(raw: RowVO[]): RowVO[] {
   const rows = raw.map(r => ({ ...r })); // clone
 
-  let rowId = 1;
   let tierId = 1;
 
   let segStart = 0;
-  let prev = rows.length ? parseTdmc(rows[0].tdmc) : null;
+  let prevNum = rows.length ? parseTdmc(rows[0].tdmc) : null;
+  let prevXq = rows.length ? rows[0].xqId : null;
 
   for (let i = 1; i <= rows.length; i++) {
-    const cur = i < rows.length ? parseTdmc(rows[i].tdmc) : null;
     const isEnd = i === rows.length;
+    const curNum = i < rows.length ? parseTdmc(rows[i].tdmc) : null;
+    const curXq = i < rows.length ? rows[i].xqId : null;
 
-    // 相邻 tdmc 数字不同 => 新段
-    if (isEnd || cur !== prev) {
+    // ✅ 段切分：tdmc数字变化 或 xqId变化
+    if (isEnd || curNum !== prevNum || curXq !== prevXq) {
       const thisTier = tierId++;
       for (let k = segStart; k < i; k++) {
-        rows[k].tdxh = rowId++;
         rows[k].tdmc = `第${thisTier}梯队`;
       }
       segStart = i;
-      prev = cur;
+      prevNum = curNum;
+      prevXq = curXq;
     }
   }
 
