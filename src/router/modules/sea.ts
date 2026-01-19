@@ -69,6 +69,14 @@ export default {
       meta: {
         title: '表格合并移动'
       }
+    },
+    {
+      path: '/sea/mars2dship',
+      name: 'mars2dship',
+      component: () => import('@/views/sea/mars2d/index.vue'),
+      meta: {
+        title: '船舶时序播放'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
