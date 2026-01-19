@@ -1,173 +1,105 @@
 <script lang="ts" setup>
-// 引入css
-import shipData from './data.json';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 import * as mars2d from 'mars2d';
-import 'mars2d-esri';
-import { nextTick, onMounted } from 'vue'; // 导入mars2d插件，导入即可，自动注册（按需使用，需要先npm install mars2d-esri）
-let map; // mars2d.Map三维地图对象
-import './leaflet.trackplayback.js';
-const L = mars2d.L;
-// 事件对象，用于抛出事件给vue
-const eventTarget = new mars2d.BaseClass();
-let trackplayback;
-// 事件对象，用于抛出事件
+import { Mars2DTrackPlayer } from './Mars2DTrackPlayer';
+
+let map: mars2d.Map;
+let player: Mars2DTrackPlayer | null = null;
+
+// 是否已准备好轨迹（避免按钮点了没数据）
+const ready = ref(false);
+
+// 轨迹点缓存（单船）
+let latlngs: Array<{ lat: number; lng: number }> = [];
+
+/** 点击按钮：开始播放（如果没创建 player，就创建；创建后就 start） */
 const handlePlay = () => {
-  trackplayback.clock.start();
+  if (!map) return;
+
+  // 没加载好轨迹就不播
+  if (!ready.value || latlngs.length < 2) {
+    console.warn('轨迹数据未就绪');
+    return;
+  }
+
+  // 第一次点击：创建播放器
+  if (!player) {
+    player = new Mars2DTrackPlayer(map, latlngs, {
+      speed: 40,
+      panTo: true,
+      markerStyle: {
+        // ✅ 先用你项目里肯定存在的图标跑通也行
+        // 没有 ship.png 就换成 img/marker/bike.png 之类
+        image: '/ship.png',
+        iconSize: [28, 28],
+        horizontalOrigin: mars2d.HorizontalOrigin.CENTER,
+        verticalOrigin: mars2d.VerticalOrigin.CENTER
+      }
+    });
+
+    // 点击船：弹出实时坐标
+    player.marker.on(mars2d.EventType.click, () => {
+      if (!player) return;
+      const p = player.currentPos;
+      player.marker
+        .bindPopup(
+          `实时位置<br/>lat: ${p.lat.toFixed(6)}<br/>lng: ${p.lng.toFixed(6)}`
+        )
+        .openPopup();
+    });
+  }
+
+  // 开始/继续播放
+  player.start();
 };
 
-let curTargetPoint: any = null; // 当前船的位置（经纬度+time+dir）
-let lastPopup: any = null;
-
-function bindShipClickPopup() {
-  // 防止重复绑定
-  map.off('click', onMapClick);
-  map.on('click', onMapClick);
-}
-
-function onMapClick(evt: any) {
-  if (!curTargetPoint) return;
-
-  // 点击点（屏幕像素）
-  const clickPt = evt.layerPoint;
-  // 船当前位置（屏幕像素）
-  const shipPt = map.latLngToLayerPoint([
-    curTargetPoint.lat,
-    curTargetPoint.lng
-  ]);
-
-  const hitRadiusPx = 18; // 命中半径，按你的船图标大小调大/调小
-  if (clickPt.distanceTo(shipPt) <= hitRadiusPx) {
-    // 命中：弹 popup
-    const html = `
-      <div style="min-width: 180px">
-        <div style="font-weight:600;margin-bottom:6px">船只信息</div>
-        <div>时间：${getShowTime(curTargetPoint.time)}</div>
-        <div>航向：${parseInt(curTargetPoint.dir || 0)}°</div>
-        ${curTargetPoint.info?.length ? `<hr style="margin:6px 0" />` : ''}
-        ${
-          curTargetPoint.info?.length
-            ? curTargetPoint.info
-                .map((it: any) => `<div>${it.key}：${it.value}</div>`)
-                .join('')
-            : ''
-        }
-      </div>
-    `;
-
-    lastPopup && map.closePopup(lastPopup);
-    lastPopup = L.popup()
-      .setLatLng([curTargetPoint.lat, curTargetPoint.lng])
-      .setContent(html)
-      .openOn(map);
-  }
-}
-
-function getInfo() {
-  const simpleCurTime = trackplayback.clock.getCurTime();
-  const simpleStartTime = trackplayback.clock.getStartTime();
-  const simpleEndTime = trackplayback.clock.getEndTime();
-
-  return {
-    curTime: getShowTime(simpleCurTime),
-    startTime: getShowTime(simpleStartTime),
-    endTime: getShowTime(simpleEndTime),
-    speed: trackplayback.clock.getSpeed(),
-    simpleCurTime,
-    simpleStartTime,
-    simpleEndTime
-  };
-}
-
-function getShowTime(time, accuracy = 's') {
-  time = parseInt(time * 1000);
-  const newDate = new Date(time);
-  const year = newDate.getFullYear();
-  const month =
-    newDate.getMonth() + 1 < 10
-      ? '0' + (newDate.getMonth() + 1)
-      : newDate.getMonth() + 1;
-  const day =
-    newDate.getDate() < 10 ? '0' + newDate.getDate() : newDate.getDate();
-  const hours =
-    newDate.getHours() < 10 ? '0' + newDate.getHours() : newDate.getHours();
-  const minuts =
-    newDate.getMinutes() < 10
-      ? '0' + newDate.getMinutes()
-      : newDate.getMinutes();
-  const seconds =
-    newDate.getSeconds() < 10
-      ? '0' + newDate.getSeconds()
-      : newDate.getSeconds();
-  let ret;
-  if (accuracy === 'd') {
-    ret = year + '-' + month + '-' + day;
-  } else if (accuracy === 'h') {
-    ret = year + '-' + month + '-' + day + ' ' + hours;
-  } else if (accuracy === 'm') {
-    ret = year + '-' + month + '-' + day + ' ' + hours + ':' + minuts;
-  } else {
-    ret =
-      year +
-      '-' +
-      month +
-      '-' +
-      day +
-      ' ' +
-      hours +
-      ':' +
-      minuts +
-      ':' +
-      seconds;
-  }
-  return ret;
-}
-
-onMounted(() => {
+onMounted(async () => {
   map = new mars2d.Map('mars2dContainer', {
     zoom: 6,
     center: { lng: 131.085263, lat: 33.30635 },
     basemaps: [{ name: '高德地图', type: 'gaode', layer: 'vec', show: true }]
   });
 
-  nextTick(() => {
-    trackplayback = L.trackplayback(shipData, map, {
-      targetOptions: { useImg: true, imgUrl: '/ship.png' }
+  // ✅ 拉一条示例轨迹（先跑通单船）
+  try {
+    const geojson: any = await mars2d.Util.fetchJson({
+      url: 'http://data.mars2d.cn/file/geojson/tianzhushan.json'
     });
 
-    // 初始化当前船位置（还没播放时）
-    const track0 = trackplayback.tracks?.[0];
-    if (track0) {
-      const t0 = trackplayback.clock.getCurTime();
-      curTargetPoint =
-        track0._getCalculateTrackPointByTime(t0) ||
-        track0.getTrackPointByTime(t0);
-    }
+    latlngs = mars2d.PointTrans.coords2latlngs(
+      geojson.features[0].geometry.coordinates
+    ) as Array<{ lat: number; lng: number }>;
 
-    const info = getInfo();
-    eventTarget.fire('dataLoad', { info });
+    // ✅ 用 Leaflet 推荐写法生成 bounds（不会依赖 fromPoints）
+    const bounds = mars2d.L.latLngBounds(
+      latlngs.map(p => [p.lat, p.lng]) as any
+    );
+    map.fitBounds(bounds);
 
-    trackplayback.clock.on('tick', function () {
-      // ✅ 用 clock.getCurTime 更稳
-      const track0 = trackplayback.tracks?.[0];
-      if (track0) {
-        const t = trackplayback.clock.getCurTime();
-        curTargetPoint =
-          track0._getCalculateTrackPointByTime(t) ||
-          track0.getTrackPointByTime(t);
-      }
+    ready.value = true;
+  } catch (err) {
+    console.error('加载轨迹失败：', err);
+    ready.value = false;
+  }
+});
 
-      const info = getInfo();
-      eventTarget.fire('dataLoad', { info });
-    });
+onBeforeUnmount(() => {
+  player?.remove();
+  player = null;
 
-    bindShipClickPopup();
-  });
+  // mars2d Map 释放（不同版本可能是 destroy/remove）
+  (map as any)?.destroy?.();
 });
 </script>
 
 <template>
-  <div class="h-[100%] w-[100%]">
-    <el-button type="primary" @click="handlePlay">开始播放</el-button>
+  <div class="h-[100%] w-[100%] relative">
+    <el-button
+      type="primary"
+      class="absolute left-[24px] top-[24px] z-401"
+      @click="handlePlay"
+      >开始播放</el-button
+    >
     <div id="mars2dContainer" class="mars2d-container" />
   </div>
 </template>
