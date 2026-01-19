@@ -194,6 +194,8 @@ export class Mars2DTrackPlayer extends Emitter {
   /** 当前实时位置（对外暴露，便于点击弹窗） */
   public currentPos: { lat: number; lng: number };
 
+  private options!: Required<TrackPlayerOptions>;
+
   /** 当前所在轨迹段索引 */
   public currentIndex = 0;
 
@@ -241,6 +243,7 @@ export class Mars2DTrackPlayer extends Emitter {
       layer: options.layer ?? null
     };
 
+    this.options = opt as Required<TrackPlayerOptions>;
     this.speedKmh = opt.speed;
 
     /* ===== 轨迹数据预处理 ===== */
@@ -377,9 +380,15 @@ export class Mars2DTrackPlayer extends Emitter {
 
     this.marker.setLatLng(this.currentPos);
 
-    // 方向旋转
-    const deg = bearingDeg(start, end);
-    this.marker.setStyle({ rotation: deg });
+    // 方向旋转（兼容 rotatedMarker 的字段）
+    if (this.options.markerRotation) {
+      const deg =
+        bearingDeg(start, end) + (this.options.markerRotationOffset ?? 0);
+      this.marker.setStyle({
+        rotationAngle: deg,
+        rotationOrigin: 'center center'
+      });
+    }
 
     // 更新轨迹线
     this.passedLine.setLatLngs([
