@@ -26,7 +26,6 @@ import { tableData } from '@/views/sea/tableMerge/data';
 interface RowVO {
   id: string; // ✅ 后端主键
   sort?: number;
-  tdxh?: number;
   tdmc: string;
   name: string;
   xqId: string;
@@ -56,7 +55,6 @@ function renumberDisplayTiersByOrder(list: RowVO[]): RowVO[] {
       // 同一块内保持同名
       r.tdmc = `第${tierId - 1}梯队`;
     }
-    r.tdxh = rowSeq++;
   }
 
   return list;
@@ -291,7 +289,6 @@ function parseTdmc(tdmc: any): number | null {
  * - 只沿着当前数组顺序扫描
  * - 按“相邻 tdmc(数字) 变化”切段
  * - 给每个段分配全局递增且不重复的展示梯队名：第1、第2...梯队
- * - 生成行唯一 tdxh（仅展示用）
  */
 function normalizeTableData(raw: RowVO[]): RowVO[] {
   const rows = raw.map(r => ({ ...r })); // clone
