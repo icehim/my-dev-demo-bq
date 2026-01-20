@@ -25,7 +25,7 @@ const handlePlay = () => {
   // 第一次点击：创建播放器
   if (!player) {
     player = new Mars2DTrackPlayer(map, latlngs, {
-      speed: 40,
+      speed: 80,
       panTo: true,
       markerStyle: {
         // ✅ 先用你项目里肯定存在的图标跑通也行
@@ -37,15 +37,25 @@ const handlePlay = () => {
       }
     });
 
-    // 点击船：弹出实时坐标
+    // 1) 先绑定一个空 popup（只绑定一次）
+    player.marker.bindPopup('', {
+      // 这两个按需：一般默认就行
+      autoClose: true,
+      closeOnClick: true
+    });
+
+    // 2) 点击时：更新内容 + open（不要再 bindPopup）
     player.marker.on(mars2d.EventType.click, () => {
       if (!player) return;
       const p = player.currentPos;
-      player.marker
-        .bindPopup(
-          `实时位置<br/>lat: ${p.lat.toFixed(6)}<br/>lng: ${p.lng.toFixed(6)}`
-        )
-        .openPopup();
+      const html = `实时位置<br/>lat: ${p.lat.toFixed(6)}<br/>lng: ${p.lng.toFixed(6)}`;
+
+      // ✅ 优先用 mars2d 的 API（如果有）
+      if (typeof (player.marker as any).setPopupContent === 'function') {
+        (player.marker as any).setPopupContent(html);
+        player.marker.openPopup();
+        return;
+      }
     });
   }
 
@@ -94,12 +104,10 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-[100%] w-[100%] relative">
-    <el-button
-      type="primary"
-      class="absolute left-[24px] top-[24px] z-401"
-      @click="handlePlay"
-      >开始播放</el-button
-    >
+    <div class="absolute left-[24px] top-[24px] z-401">
+      <el-button type="primary" @click="handlePlay">开始播放</el-button>
+    </div>
+
     <div id="mars2dContainer" class="mars2d-container" />
   </div>
 </template>
