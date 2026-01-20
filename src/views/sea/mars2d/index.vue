@@ -1,61 +1,79 @@
 <script lang="ts" setup>
+/**
+ * index.vue（Vue3 + <script setup> + TypeScript）
+ * ------------------------------------------------------------
+ * 这个页面演示：
+ * - 读取 GeoJSON（FeatureCollection）
+ *   - geometry.coordinates: [[lng,lat], ...]
+ *   - properties.coordTimes: [ISO时间字符串, ...] 与 coordinates 一一对应
+ * - 每个 feature 生成一艘船（一个 Mars2DTimeTrackPlayer 实例）
+ * - 支持：播放/暂停/倍速/时间轴拖动（seek）
+ * - 支持：hover popup（轻量信息） + click popup（固定详情）
+ *
+ * 你后续接后端时，只要把 fc 换成接口返回的数据即可。
+ */
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import * as mars2d from 'mars2d';
+
+// 播放器：时间轴驱动（按时间戳插值）
 import { Mars2DTimeTrackPlayer } from './Mars2DTimeTrackPlayer';
-import { TimedPoint } from '@/views/sea/mars2d/Mars2DTimeTrackPlayer';
+import type { TimedPoint } from './Mars2DTimeTrackPlayer';
+
+// 本地模拟数据（后续替换成后端请求返回）
 import fc from './data.json';
 
 let map: mars2d.Map;
 
+/** UI：当前倍速（时间倍速） */
 const speed = ref(1);
-const timelineValue = ref(0); // 当前时间（ms）
-const dragging = ref(false); // 是否正在拖动
+
+/**
+ * UI：时间轴 slider 的值（毫秒时间戳）
+ * - v-model 绑定
+ * - 播放时会自动更新
+ * - 拖动时会同步 setTime 到所有船
+ */
+const timelineValue = ref(0);
+
+/** UI：是否正在拖动（避免播放时 timelineValue 被回写导致抖动） */
+const dragging = ref(false);
+
+/** 倍速档位（可按需增删） */
 const speedOptions = ref([
-  {
-    label: '1',
-    value: 1
-  },
-  {
-    label: '2',
-    value: 2
-  },
-  {
-    label: '4',
-    value: 4
-  },
-  {
-    label: '8',
-    value: 8
-  },
-  {
-    label: '3600(1:1小时)',
-    value: 3600
-  },
-  {
-    label: '7200(1:2小时)',
-    value: 7200
-  }
+  { label: '1x（实时）', value: 1 },
+  { label: '5x', value: 5 },
+  { label: '20x', value: 20 },
+  { label: '100x', value: 100 },
+  { label: '600x', value: 600 },
+  { label: '3600x（1小时）', value: 3600 },
+  { label: '7200x（2小时）', value: 7200 }
 ]);
+
+/** 格式化时间，用于 UI 显示 */
 const formatTime = (t: number) => {
-  return new Date(t).toLocaleString('zh-CN', {
-    hour12: false
-  });
+  return new Date(t).toLocaleString('zh-CN', { hour12: false });
 };
-function parseShipsFromGeoJSON(fc: any) {
+
+/**
+ * 解析后端 GeoJSON：
+ * - 每个 feature => { id, points[] }
+ */
+function parseShipsFromGeoJSON(fcAny: any) {
   const ships: Array<{ id: string; points: TimedPoint[] }> = [];
 
-  const features = fc?.features ?? [];
+  const features = fcAny?.features ?? [];
   features.forEach((f: any, idx: number) => {
     const coords: number[][] = f?.geometry?.coordinates ?? [];
     const times: string[] = f?.properties?.coordTimes ?? [];
 
+    // 坐标与时间一一对应，取最短长度
     const n = Math.min(coords.length, times.length);
     if (n < 2) return;
 
     const points: TimedPoint[] = [];
     for (let i = 0; i < n; i++) {
       const [lng, lat] = coords[i];
-      const t = Date.parse(times[i]); // ISO -> ms
+      const t = Date.parse(times[i]); // ISO -> ms（UTC）
       if (!Number.isFinite(t)) continue;
       points.push({ lat, lng, t });
     }
@@ -68,50 +86,87 @@ function parseShipsFromGeoJSON(fc: any) {
   return ships;
 }
 
+/** 所有船的播放器实例 */
 let players: Mars2DTimeTrackPlayer[] = [];
+
+/** 全局时间范围（统一时间轴） */
 let globalStart = 0;
 let globalEnd = 0;
+
+/** 是否初始化完成（避免按钮误触） */
 let inited = false;
-// 每艘船自己维护一个“是否固定详情”的状态
-let pinned = false;
-async function initFleetFromGeojson(fc: any) {
-  // 清理
+
+/**
+ * 初始化船队（核心）
+ * - 清理旧实例
+ * - 解析 GeoJSON
+ * - 计算全局时间范围
+ * - 为每条 feature 创建一个播放器实例
+ * - 将所有船对齐到 globalStart
+ */
+async function initFleetFromGeojson(fcAny: any) {
+  // 1) 清理旧实例（避免重复绑定事件/内存泄漏）
   players.forEach(p => p.remove());
   players = [];
 
-  const ships = parseShipsFromGeoJSON(fc);
+  // 2) 解析数据
+  const ships = parseShipsFromGeoJSON(fcAny);
   if (ships.length === 0) throw new Error('没有可用的船轨迹');
 
-  // 计算全局时间范围（让所有船同一时间轴）
+  // 3) 计算全局时间范围：所有船统一时间轴
   globalStart = Math.min(...ships.map(s => s.points[0].t));
   globalEnd = Math.max(...ships.map(s => s.points[s.points.length - 1].t));
 
+  // 4) 创建播放器实例
   ships.forEach((s, i) => {
     const p = new Mars2DTimeTrackPlayer(map, s.points, {
-      speedFactor: 1, // 时间倍速
+      // 时间倍速：1 秒真实时间推进多少“轨迹秒”
+      speedFactor: speed.value,
+
+      // 多船同时播放一般不建议 panTo
       panTo: false,
+
+      // marker 样式：图标自行放在 public/ship.png
       markerStyle: {
         image: '/ship.png',
         iconSize: [28, 28],
         horizontalOrigin: mars2d.HorizontalOrigin.CENTER,
         verticalOrigin: mars2d.VerticalOrigin.CENTER
       },
+
+      // 已走线：AntPath 动态虚线（示例参数，可自行微调）
       passedLineStyle: {
         color: '#ec6137',
         delay: 1000,
-        opacity: 1,
+        opacity: 0.9,
         width: 3,
         dashArray: '10,20',
-        pulseColor: '#fff'
+        pulseColor: '#ffffff',
+        lineCap: 'butt',
+        lineJoin: 'miter'
       },
+
+      // 未走/背景线：静态虚线（整条航线）
       notPassedLineStyle: {
         color: '#3b7bf6',
         width: 3,
-        opacity: 0.8,
-        dashArray: '8,8'
+        opacity: 0.6,
+        dashArray: '8,8',
+        lineCap: 'butt',
+        lineJoin: 'miter'
       }
     });
 
+    // ---------------------------
+    // Popup 交互：hover / click
+    // ---------------------------
+
+    // 每艘船独立维护一个 pinned 状态：
+    // - pinned=false：hover 显示轻量信息，鼠标移走自动关闭
+    // - pinned=true ：click 固定详情，不随 mouseout 关闭
+    let pinned = false;
+
+    // 只 bind 一次 popup（不要每次 hover/click 反复 bind）
     p.marker.bindPopup('', {
       closeButton: false,
       autoClose: false,
@@ -119,19 +174,19 @@ async function initFleetFromGeojson(fc: any) {
       offsetY: -30
     });
 
-    // hover：仅当没有 pinned 时才显示
+    // hover：仅在未 pinned 时显示
     p.marker.on(mars2d.EventType.mouseover, () => {
       if (pinned) return;
 
       const pos = p.currentPos;
       const html = `<div style="font-size:12px;">
-      <b>船舶信息【hover】</b><br/>
-      时间：${new Date(p.currentTime).toLocaleString()}<br/>
-      经度：${pos.lng.toFixed(6)}<br/>
-      纬度：${pos.lat.toFixed(6)}
-    </div>`;
+          <b>船舶信息【hover】</b><br/>
+          ID：${s.id}<br/>
+          时间：${formatTime(p.currentTime)}<br/>
+          经度：${pos.lng.toFixed(6)}<br/>
+          纬度：${pos.lat.toFixed(6)}
+        </div>`;
 
-      // 更新内容 + 打开（只更新 content，不要重新 bind）
       if (typeof (p.marker as any).setPopupContent === 'function') {
         (p.marker as any).setPopupContent(html);
         p.marker.openPopup();
@@ -144,86 +199,106 @@ async function initFleetFromGeojson(fc: any) {
       }
     });
 
-    // mouseout：仅当没有 pinned 时才关闭
+    // hover 离开：仅在未 pinned 时关闭
     p.marker.on(mars2d.EventType.mouseout, () => {
       if (pinned) return;
       p.marker.closePopup();
     });
 
-    // click：切换 pinned 状态（固定/取消固定）
+    // click：切换 pinned（固定/取消固定）
     p.marker.on(mars2d.EventType.click, () => {
       pinned = !pinned;
 
-      const html = pinned
-        ? `<div style="width:240px">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <h4 style="margin:0;">船舶详情【click】</h4>
-          <button id="pinCloseBtn" style="border:none;background:transparent;cursor:pointer;font-size:16px;">✕</button>
-        </div>
-        MMSI：${s.id}<br/>
-        时间：${new Date(p.currentTime).toISOString()}<br/>
-        经度：${p.currentPos.lng.toFixed(6)}<br/>
-        纬度：${p.currentPos.lat.toFixed(6)}
-      </div>`
-        : ''; // 取消固定：先清空，后面 hover 会重新写
+      if (!pinned) {
+        p.marker.closePopup();
+        return;
+      }
+
+      const html = `<div style="width:240px">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <h4 style="margin:0;">船舶详情【click】</h4>
+            <button id="pinCloseBtn-${i}" style="border:none;background:transparent;cursor:pointer;font-size:16px;">✕</button>
+          </div>
+          ID：${s.id}<br/>
+          时间：${new Date(p.currentTime).toISOString()}<br/>
+          经度：${p.currentPos.lng.toFixed(6)}<br/>
+          纬度：${p.currentPos.lat.toFixed(6)}
+        </div>`;
 
       if (typeof (p.marker as any).setPopupContent === 'function') {
         (p.marker as any).setPopupContent(html);
-        if (pinned) p.marker.openPopup();
-        else p.marker.closePopup();
+        p.marker.openPopup();
       } else {
         const leaf = (p.marker as any)._layer;
         if (leaf?.setPopupContent) {
           leaf.setPopupContent(html);
-          if (pinned) leaf.openPopup();
-          else leaf.closePopup();
+          leaf.openPopup();
         }
       }
 
-      // 如果 pin 住了，给“✕”绑定一次关闭逻辑（要等 DOM 渲染出来）
-      if (pinned) {
-        setTimeout(() => {
-          const container = (p.marker as any)._popup?._container;
-          const btn = container?.querySelector?.(
-            '#pinCloseBtn'
-          ) as HTMLElement | null;
-          if (btn) {
-            btn.onclick = () => {
-              pinned = false;
-              p.marker.closePopup();
-            };
-          }
-        }, 0);
-      }
+      // 绑定关闭按钮事件（DOM 渲染后再取）
+      setTimeout(() => {
+        const container = (p.marker as any)._popup?._container;
+        const btn = container?.querySelector?.(
+          `#pinCloseBtn-${i}`
+        ) as HTMLElement | null;
+        if (btn) {
+          btn.onclick = () => {
+            pinned = false;
+            p.marker.closePopup();
+          };
+        }
+      }, 0);
     });
 
     players.push(p);
   });
 
-  // 关键：统一设置到全局起始时间（对齐）
+  // 5) 将所有船对齐到全局起始时间
   players.forEach(p => p.setTime(globalStart));
 
-  inited = true;
+  // 6) 初始化时间轴 UI（slider）
   timelineValue.value = globalStart;
 
+  // 7) 让第一艘船作为“时间源”驱动 slider（播放时 slider 自动走）
+  //    注意：拖动时不要回写 timelineValue，避免抖动
   players[0].on('time', (t: number) => {
-    if (!dragging.value) {
-      timelineValue.value = t;
-    }
+    if (!dragging.value) timelineValue.value = t;
   });
+
+  inited = true;
 }
 
+/** 播放：所有船一起 start */
 const handlePlay = () => {
   if (!inited) return;
   players.forEach(p => p.start());
 };
 
+/** 暂停：所有船一起 pause（pause 内部也会停 AntPath） */
 const handlePause = () => {
   players.forEach(p => p.pause());
 };
 
-const handleSpeed = val => {
-  players.forEach(p => p.setSpeedFactor(val));
+/** 改倍速：所有船一起 setSpeedFactor */
+const handleSpeed = (factor: number) => {
+  speed.value = factor;
+  players.forEach(p => p.setSpeedFactor(factor));
+};
+
+/**
+ * 时间轴拖动（seek）
+ * 推荐用 Element Plus 的 @input + @change：
+ * - input：拖动过程中持续触发 -> pause + setTime
+ * - change：松手触发 -> 结束拖动状态
+ */
+const onTimelineInput = (val: number) => {
+  // 第一次触发 input 时：认为开始拖动，先暂停（含 AntPath）
+  if (!dragging.value) {
+    dragging.value = true;
+    players.forEach(p => p.pause());
+  }
+  players.forEach(p => p.setTime(val));
 };
 
 const onTimelineChange = (val: number) => {
@@ -231,26 +306,23 @@ const onTimelineChange = (val: number) => {
   dragging.value = false;
 };
 
-const onTimelineInput = (val: number) => {
-  // 第一次 input：立刻暂停（船+AntPath）
-  if (!dragging.value) {
-    dragging.value = true;
-    players.forEach(p => p.pause()); // pause 内部要 setStyle({paused:true})
-  }
-
-  players.forEach(p => p.setTime(val));
-};
-
 onMounted(async () => {
+  // 1) 初始化地图
   map = new mars2d.Map('mars2dContainer', {
     zoom: 6,
     center: { lng: 131.085263, lat: 33.30635 },
     basemaps: [{ name: '高德地图', type: 'gaode', layer: 'vec', show: true }]
   });
+
+  // 2) 初始化船队（本地 mock；后续替换后端返回）
   await initFleetFromGeojson(fc);
 });
 
 onBeforeUnmount(() => {
+  // 清理播放器实例
+  players.forEach(p => p.remove());
+  players = [];
+
   // mars2d Map 释放（不同版本可能是 destroy/remove）
   (map as any)?.destroy?.();
 });
@@ -258,36 +330,44 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-[100%] w-[100%] relative">
-    <div class="absolute left-[24px] top-[24px] z-401">
+    <!-- 操作面板 -->
+    <div class="absolute left-[24px] top-[24px] z-401 flex gap-2">
       <el-button type="primary" @click="handlePlay">开始播放</el-button>
-      <el-button type="primary" @click="handlePause">暂停播放</el-button>
-      设置倍速：<el-select
+      <el-button @click="handlePause">暂停</el-button>
+
+      <!-- 倍速选择（你也可以换成 el-select） -->
+      <el-select
         v-model="speed"
-        class="w-[80px]! mr-[8px]"
+        style="width: 180px"
+        placeholder="倍速"
         @change="handleSpeed"
       >
         <el-option
-          v-for="item in speedOptions"
-          :key="item.value"
-          :label="item.label"
-          :value="item.value"
+          v-for="opt in speedOptions"
+          :key="opt.value"
+          :label="opt.label"
+          :value="opt.value"
         />
       </el-select>
-      <div class="timeline-label">
-        {{ formatTime(timelineValue) }}
-      </div>
+    </div>
+
+    <!-- 时间轴（底部） -->
+    <div class="absolute left-[24px] right-[24px] bottom-[24px] z-401">
       <el-slider
         v-model="timelineValue"
         :min="globalStart"
         :max="globalEnd"
         :step="1000"
         :show-tooltip="false"
-        class="timeline-slider"
-        @change="onTimelineChange"
         @input="onTimelineInput"
+        @change="onTimelineChange"
       />
+      <div class="text-center text-xs mt-1">
+        {{ formatTime(timelineValue) }}
+      </div>
     </div>
 
+    <!-- 地图容器 -->
     <div id="mars2dContainer" class="mars2d-container" />
   </div>
 </template>
@@ -296,20 +376,5 @@ onBeforeUnmount(() => {
 .mars2d-container {
   width: 100%;
   height: 100%;
-}
-
-.timeline-container {
-  position: absolute;
-  right: 24px;
-  bottom: 24px;
-  left: 24px;
-  z-index: 401;
-}
-
-.timeline-label {
-  margin-top: 6px;
-  font-size: 12px;
-  color: #333;
-  text-align: center;
 }
 </style>
