@@ -172,6 +172,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
         color: this.options.passedLineColor,
         width: this.options.weight,
         delay: 1000,
+        paused: true,
         dashArray: '10,20',
         pulseColor: '#ffffff',
         lineCap: 'butt',
@@ -206,11 +207,15 @@ export class Mars2DTimeTrackPlayer extends Emitter {
 
   /** 暂停 */
   pause() {
-    if (!this.playing) return;
+    this.passedLine?.setStyle?.({ paused: true });
+    if (!this.playing) {
+      this.emit('pause');
+      return;
+    }
     this.playing = false;
     if (this.rafId != null) cancelAnimationFrame(this.rafId);
-    this.passedLine?.setStyle?.({ paused: true });
     this.rafId = null;
+
     this.emit('pause');
   }
 

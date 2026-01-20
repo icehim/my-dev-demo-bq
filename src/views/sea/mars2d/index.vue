@@ -8,6 +8,8 @@ import fc from './data.json';
 let map: mars2d.Map;
 
 const speed = ref(1);
+const timelineValue = ref(0); // 当前时间（ms）
+const dragging = ref(false); // 是否正在拖动
 const speedOptions = ref([
   {
     label: '1',
@@ -34,7 +36,11 @@ const speedOptions = ref([
     value: 7200
   }
 ]);
-
+const formatTime = (t: number) => {
+  return new Date(t).toLocaleString('zh-CN', {
+    hour12: false
+  });
+};
 function parseShipsFromGeoJSON(fc: any) {
   const ships: Array<{ id: string; points: TimedPoint[] }> = [];
 
@@ -198,6 +204,13 @@ async function initFleetFromGeojson(fc: any) {
   players.forEach(p => p.setTime(globalStart));
 
   inited = true;
+  timelineValue.value = globalStart;
+
+  players[0].on('time', (t: number) => {
+    if (!dragging.value) {
+      timelineValue.value = t;
+    }
+  });
 }
 
 const handlePlay = () => {
@@ -209,13 +222,23 @@ const handlePause = () => {
   players.forEach(p => p.pause());
 };
 
-const handleSpeed = () => {
-  players.forEach(p => p.setSpeedFactor(speed.value));
+const handleSpeed = val => {
+  players.forEach(p => p.setSpeedFactor(val));
 };
 
-// 还可以做一个时间轴拖动：
-const setGlobalTime = (t: number) => {
-  players.forEach(p => p.setTime(t));
+const onTimelineChange = (val: number) => {
+  players.forEach(p => p.setTime(val));
+  dragging.value = false;
+};
+
+const onTimelineInput = (val: number) => {
+  // 第一次 input：立刻暂停（船+AntPath）
+  if (!dragging.value) {
+    dragging.value = true;
+    players.forEach(p => p.pause()); // pause 内部要 setStyle({paused:true})
+  }
+
+  players.forEach(p => p.setTime(val));
 };
 
 onMounted(async () => {
@@ -238,7 +261,11 @@ onBeforeUnmount(() => {
     <div class="absolute left-[24px] top-[24px] z-401">
       <el-button type="primary" @click="handlePlay">开始播放</el-button>
       <el-button type="primary" @click="handlePause">暂停播放</el-button>
-      设置倍速：<el-select v-model="speed" class="w-[80px]! mr-[8px]">
+      设置倍速：<el-select
+        v-model="speed"
+        class="w-[80px]! mr-[8px]"
+        @change="handleSpeed"
+      >
         <el-option
           v-for="item in speedOptions"
           :key="item.value"
@@ -246,7 +273,19 @@ onBeforeUnmount(() => {
           :value="item.value"
         />
       </el-select>
-      <el-button type="primary" @click="handleSpeed">设置倍速</el-button>
+      <div class="timeline-label">
+        {{ formatTime(timelineValue) }}
+      </div>
+      <el-slider
+        v-model="timelineValue"
+        :min="globalStart"
+        :max="globalEnd"
+        :step="1000"
+        :show-tooltip="false"
+        class="timeline-slider"
+        @change="onTimelineChange"
+        @input="onTimelineInput"
+      />
     </div>
 
     <div id="mars2dContainer" class="mars2d-container" />
@@ -257,5 +296,20 @@ onBeforeUnmount(() => {
 .mars2d-container {
   width: 100%;
   height: 100%;
+}
+
+.timeline-container {
+  position: absolute;
+  right: 24px;
+  bottom: 24px;
+  left: 24px;
+  z-index: 401;
+}
+
+.timeline-label {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #333;
+  text-align: center;
 }
 </style>
