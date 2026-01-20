@@ -7,6 +7,34 @@ import fc from './data.json';
 
 let map: mars2d.Map;
 
+const speed = ref(1);
+const speedOptions = ref([
+  {
+    label: '1',
+    value: 1
+  },
+  {
+    label: '2',
+    value: 2
+  },
+  {
+    label: '4',
+    value: 4
+  },
+  {
+    label: '8',
+    value: 8
+  },
+  {
+    label: '3600(1:1小时)',
+    value: 3600
+  },
+  {
+    label: '7200(1:2小时)',
+    value: 7200
+  }
+]);
+
 function parseShipsFromGeoJSON(fc: any) {
   const ships: Array<{ id: string; points: TimedPoint[] }> = [];
 
@@ -54,7 +82,7 @@ async function initFleetFromGeojson(fc: any) {
 
   ships.forEach((s, i) => {
     const p = new Mars2DTimeTrackPlayer(map, s.points, {
-      speedFactor: 2400, // 时间倍速
+      speedFactor: 1, // 时间倍速
       panTo: false,
       markerStyle: {
         image: '/ship.png',
@@ -181,8 +209,8 @@ const handlePause = () => {
   players.forEach(p => p.pause());
 };
 
-const handleSpeed = (factor: number) => {
-  players.forEach(p => p.setSpeedFactor(factor));
+const handleSpeed = () => {
+  players.forEach(p => p.setSpeedFactor(speed.value));
 };
 
 // 还可以做一个时间轴拖动：
@@ -209,6 +237,16 @@ onBeforeUnmount(() => {
   <div class="h-[100%] w-[100%] relative">
     <div class="absolute left-[24px] top-[24px] z-401">
       <el-button type="primary" @click="handlePlay">开始播放</el-button>
+      <el-button type="primary" @click="handlePause">暂停播放</el-button>
+      设置倍速：<el-select v-model="speed" class="w-[80px]! mr-[8px]">
+        <el-option
+          v-for="item in speedOptions"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
+        />
+      </el-select>
+      <el-button type="primary" @click="handleSpeed">设置倍速</el-button>
     </div>
 
     <div id="mars2dContainer" class="mars2d-container" />

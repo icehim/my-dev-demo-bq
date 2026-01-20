@@ -199,6 +199,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     if (this.playing) return;
     this.playing = true;
     this.lastTs = performance.now();
+    this.passedLine?.setStyle?.({ paused: false });
     this.emit('start');
     this.loop();
   }
@@ -208,6 +209,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     if (!this.playing) return;
     this.playing = false;
     if (this.rafId != null) cancelAnimationFrame(this.rafId);
+    this.passedLine?.setStyle?.({ paused: true });
     this.rafId = null;
     this.emit('pause');
   }
