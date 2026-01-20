@@ -61,6 +61,13 @@ async function initFleetFromGeojson(fc: any) {
         iconSize: [28, 28],
         horizontalOrigin: mars2d.HorizontalOrigin.CENTER,
         verticalOrigin: mars2d.VerticalOrigin.CENTER
+      },
+      passedLineStyle: { color: '#00c2ff', width: 4, opacity: 0.9 },
+      notPassedLineStyle: {
+        color: '#00c2ff',
+        width: 3,
+        opacity: 0.35,
+        dashArray: '8,8'
       }
     });
 

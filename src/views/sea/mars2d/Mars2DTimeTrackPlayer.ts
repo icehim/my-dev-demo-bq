@@ -32,6 +32,8 @@ export interface TimeTrackPlayerOptions {
 
   /** 可选：外部传入图层 */
   layer?: any;
+  passedLineStyle?: any;
+  notPassedLineStyle?: any;
 }
 
 type EventName = 'start' | 'pause' | 'finished' | 'time';
@@ -139,7 +141,10 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       weight: options.weight ?? 6,
       passedLineColor: options.passedLineColor ?? '#00f',
       notPassedLineColor: options.notPassedLineColor ?? '#f00',
-      layer: options.layer ?? null
+      layer: options.layer ?? null,
+      // ✅ 新增：默认样式对象（必须给）
+      passedLineStyle: options.passedLineStyle ?? {},
+      notPassedLineStyle: options.notPassedLineStyle ?? {}
     };
 
     // 图层
@@ -152,12 +157,20 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       latlngs,
       style: {
         color: this.options.notPassedLineColor,
-        width: this.options.weight
+        width: this.options.weight,
+        opacity: 0.35,
+        dashArray: '8,8',
+        ...this.options.notPassedLineStyle
       }
     });
     this.passedLine = new (mars2d as any).graphic.Polyline({
       latlngs: [latlngs[0]],
-      style: { color: this.options.passedLineColor, width: this.options.weight }
+      style: {
+        color: this.options.passedLineColor,
+        width: this.options.weight,
+        opacity: 0.9,
+        ...this.options.passedLineStyle
+      }
     });
 
     // 船
