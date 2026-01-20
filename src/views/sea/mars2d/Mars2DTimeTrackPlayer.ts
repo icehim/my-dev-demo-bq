@@ -160,15 +160,22 @@ export class Mars2DTimeTrackPlayer extends Emitter {
         width: this.options.weight,
         opacity: 0.35,
         dashArray: '8,8',
+        lineCap: 'butt',
+        lineJoin: 'miter',
         ...this.options.notPassedLineStyle
       }
     });
-    this.passedLine = new (mars2d as any).graphic.Polyline({
-      latlngs: [latlngs[0]],
+    // ✅ 已走：AntPath 动画线
+    this.passedLine = new (mars2d as any).graphic.AntPath({
+      latlngs: [latlngs[0]], // 初始只有起点
       style: {
         color: this.options.passedLineColor,
         width: this.options.weight,
-        opacity: 0.9,
+        delay: 1000,
+        dashArray: '10,20',
+        pulseColor: '#ffffff',
+        lineCap: 'butt',
+        lineJoin: 'miter',
         ...this.options.passedLineStyle
       }
     });
@@ -291,8 +298,8 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     const base = this.points.map(p => ({ lat: p.lat, lng: p.lng }));
     const passed = base.slice(0, i + 1);
     passed.push(pos);
-    const notPassed = [pos, ...base.slice(i + 1)];
     this.passedLine.setLatLngs(passed);
+    const notPassed = [pos, ...base.slice(i + 1)];
     this.notPassedLine.setLatLngs(notPassed);
 
     if (this.options.panTo) {

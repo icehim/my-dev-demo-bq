@@ -54,7 +54,7 @@ async function initFleetFromGeojson(fc: any) {
 
   ships.forEach((s, i) => {
     const p = new Mars2DTimeTrackPlayer(map, s.points, {
-      speedFactor: 1200, // 时间倍速
+      speedFactor: 2400, // 时间倍速
       panTo: false,
       markerStyle: {
         image: '/ship.png',
@@ -62,11 +62,18 @@ async function initFleetFromGeojson(fc: any) {
         horizontalOrigin: mars2d.HorizontalOrigin.CENTER,
         verticalOrigin: mars2d.VerticalOrigin.CENTER
       },
-      passedLineStyle: { color: '#00c2ff', width: 4, opacity: 0.9 },
-      notPassedLineStyle: {
-        color: '#00c2ff',
+      passedLineStyle: {
+        color: '#ec6137',
+        delay: 1000,
+        opacity: 1,
         width: 3,
-        opacity: 0.35,
+        dashArray: '10,20',
+        pulseColor: '#fff'
+      },
+      notPassedLineStyle: {
+        color: '#3b7bf6',
+        width: 3,
+        opacity: 0.8,
         dashArray: '8,8'
       }
     });
