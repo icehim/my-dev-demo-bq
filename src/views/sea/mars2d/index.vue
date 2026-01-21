@@ -111,6 +111,7 @@ async function initFleetFromGeojson(fcAny: any) {
 
   // 2) 解析数据
   const ships = parseShipsFromGeoJSON(fcAny);
+  ships.sort((a, b) => a.points[0].t - b.points[0].t); // ✅ 最早的排第一 7)以第0艘船为时间源驱动
   if (ships.length === 0) throw new Error('没有可用的船轨迹');
 
   // 3) 计算全局时间范围：所有船统一时间轴
