@@ -21,6 +21,7 @@ import type { TimedPoint } from './Mars2DTimeTrackPlayer';
 
 // 本地模拟数据（后续替换成后端请求返回）
 import fc from './data.json';
+import { FleetTimelineController } from '@/views/sea/mars2d/FleetTimelineController';
 
 let map: mars2d.Map;
 
@@ -95,7 +96,7 @@ let globalEnd = 0;
 
 /** 是否初始化完成（避免按钮误触） */
 let inited = false;
-
+let controller: FleetTimelineController;
 /**
  * 初始化船队（核心）
  * - 清理旧实例
@@ -111,7 +112,6 @@ async function initFleetFromGeojson(fcAny: any) {
 
   // 2) 解析数据
   const ships = parseShipsFromGeoJSON(fcAny);
-  ships.sort((a, b) => a.points[0].t - b.points[0].t); // ✅ 最早的排第一 7)以第0艘船为时间源驱动
   if (ships.length === 0) throw new Error('没有可用的船轨迹');
 
   // 3) 计算全局时间范围：所有船统一时间轴
@@ -261,10 +261,17 @@ async function initFleetFromGeojson(fcAny: any) {
   // 6) 初始化时间轴 UI（slider）
   timelineValue.value = globalStart;
 
-  // 7) 让第一艘船作为“时间源”驱动 slider（播放时 slider 自动走）
-  //    注意：拖动时不要回写 timelineValue，避免抖动
-  players[0].on('time', (t: number) => {
-    if (!dragging.value) timelineValue.value = t;
+  controller = new FleetTimelineController({
+    startTime: globalStart,
+    endTime: globalEnd,
+    speed: speed.value,
+    players
+  });
+
+  controller.onTime(t => {
+    if (!dragging.value) {
+      timelineValue.value = t;
+    }
   });
 
   inited = true;
@@ -273,18 +280,18 @@ async function initFleetFromGeojson(fcAny: any) {
 /** 播放：所有船一起 start */
 const handlePlay = () => {
   if (!inited) return;
-  players.forEach(p => p.start());
+  controller.play();
 };
 
 /** 暂停：所有船一起 pause（pause 内部也会停 AntPath） */
 const handlePause = () => {
-  players.forEach(p => p.pause());
+  controller.pause();
 };
 
 /** 改倍速：所有船一起 setSpeedFactor */
 const handleSpeed = (factor: number) => {
   speed.value = factor;
-  players.forEach(p => p.setSpeedFactor(factor));
+  controller.setSpeed(factor);
 };
 
 /**
@@ -297,13 +304,13 @@ const onTimelineInput = (val: number) => {
   // 第一次触发 input 时：认为开始拖动，先暂停（含 AntPath）
   if (!dragging.value) {
     dragging.value = true;
-    players.forEach(p => p.pause());
+    controller.pause();
   }
-  players.forEach(p => p.setTime(val));
+  controller.setTime(val);
 };
 
 const onTimelineChange = (val: number) => {
-  players.forEach(p => p.setTime(val));
+  controller.setTime(val);
   dragging.value = false;
 };
 

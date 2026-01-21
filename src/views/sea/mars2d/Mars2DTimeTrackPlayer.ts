@@ -2,6 +2,9 @@
  * Mars2DTimeTrackPlayer.ts
  * ------------------------------------------------------------
  * 一个「时间轴驱动」的轨迹回放播放器（单目标/单船）。
+ * 注意：
+ * 本类不负责时间推进
+ * 时间轴由 FleetTimelineController 统一管理
  *
  * ✅ 适用场景
  * - 后端返回：轨迹点 + 时间戳（例如 AIS / GPS 回放）
@@ -185,6 +188,8 @@ export class Mars2DTimeTrackPlayer extends Emitter {
   private lastTs = 0;
   /** RAF id，用于 cancelAnimationFrame */
   private rafId: number | null = null;
+  /*全局播放状态*/
+  private externalPlaying = false;
 
   /** 回放区间 */
   public readonly startTime: number;
@@ -289,43 +294,6 @@ export class Mars2DTimeTrackPlayer extends Emitter {
   }
 
   /**
-   * 开始播放：
-   * - 打开 RAF 循环推进 currentTime
-   * - 同时恢复 AntPath 动画（paused:false）
-   */
-  start() {
-    if (this.playing) return;
-    this.playing = true;
-    this.lastTs = performance.now();
-
-    // ✅ 恢复 AntPath 动画
-    this.passedLine?.setStyle?.({ paused: false });
-
-    this.emit('start');
-    this.loop();
-  }
-
-  /**
-   * 暂停播放：
-   * - 重要：即使本来不在播放，也要暂停 AntPath 动画（否则蚂蚁线会继续动）
-   */
-  pause() {
-    // ✅ 无论当前 playing 与否，都先停掉 AntPath 自己的动画
-    this.passedLine?.setStyle?.({ paused: true });
-
-    // 如果本来就没在播放，仍然发一次 pause 事件（让 UI 更一致）
-    if (!this.playing) {
-      this.emit('pause');
-      return;
-    }
-
-    this.playing = false;
-    if (this.rafId != null) cancelAnimationFrame(this.rafId);
-    this.rafId = null;
-    this.emit('pause');
-  }
-
-  /**
    * 设置倍速（时间倍速）
    * - f=60：1 秒真实时间 = 60 秒轨迹时间
    */
@@ -346,6 +314,46 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     this.applyTime(tt);
     this.emit('time', this.currentTime, this.currentPos, this.currentIndex);
   }
+  setGlobalTime(t: number) {
+    // 还没开始：停在起点，AntPath 停
+    if (t <= this.startTime) {
+      this.setTime(this.startTime);
+      this.pausePathAnimation();
+      return;
+    }
+
+    // 已结束：停在终点，AntPath 停
+    if (t >= this.endTime) {
+      this.setTime(this.endTime);
+      this.pausePathAnimation();
+      return;
+    }
+
+    // 行驶中：更新位置
+    this.setTime(t);
+
+    // ✅ 关键：只有“全局正在播放”才让 AntPath 动
+    if (this.externalPlaying) this.resumePathAnimation();
+    else this.pausePathAnimation();
+  }
+
+  /** 由全局控制器调用：告诉单船当前是否处于播放态 */
+  setExternalPlaying(playing: boolean) {
+    this.externalPlaying = playing;
+
+    // 一旦全局暂停，立刻停 AntPath（防止拖动时被 setGlobalTime 恢复）
+    if (!playing) this.pausePathAnimation();
+  }
+
+  /** 开始 AntPath 动画（不推进时间） */
+  resumePathAnimation() {
+    this.passedLine?.setStyle?.({ paused: false });
+  }
+
+  /** 暂停 AntPath 动画 */
+  pausePathAnimation() {
+    this.passedLine?.setStyle?.({ paused: true });
+  }
 
   /** 回到起点 */
   reset() {
@@ -359,7 +367,6 @@ export class Mars2DTimeTrackPlayer extends Emitter {
    * - 如果图层是内部创建的，也从 map 移除
    */
   remove() {
-    this.pause();
     this.layer.removeGraphic(this.marker);
     this.layer.removeGraphic(this.passedLine);
     this.layer.removeGraphic(this.notPassedLine);
