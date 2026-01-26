@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import ExcalidrawVue from '@/components/ExcalidrawVue';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import type {
   AppState,
   ExcalidrawImperativeAPI
@@ -48,26 +48,91 @@ const treeProps = {
   label: 'label'
 };
 
-// ====== 只拖图片：dragstart ======
-function onImgDragStart(e: DragEvent, data: TreeNode) {
-  if (!e.dataTransfer) return;
+const leafFileRef = ref<File | null>(null);
 
-  // 让 Excalidraw 把它识别为外部图片
-  e.dataTransfer.setData('text/uri-list', data.imgUrl);
-  e.dataTransfer.setData('text/plain', data.imgUrl);
+async function preloadLeafFile() {
+  if (leafFileRef.value) return;
+  const url = new URL(img, window.location.href).href;
+  const res = await fetch(url);
+  const blob = await res.blob();
+  leafFileRef.value = new File([blob], 'leaf.png', {
+    type: blob.type || 'image/png'
+  });
+}
+type AnyNode = Record<string, any>;
+function normalizeTreeWithLeafCount(tree: AnyNode[]) {
+  const walk = (node: AnyNode): AnyNode => {
+    const next: AnyNode = { ...node };
 
-  // 你的业务 payload：给 React 那边 drop 捕获用
+    // 1) wzmc / zzmc -> name
+    if (next.wzmc || next.zzmc) {
+      next.name = next.wzmc ?? next.zzmc;
+      delete next.wzmc;
+      delete next.zzmc;
+    }
+
+    // 2) jzch 合并到 children
+    const children = Array.isArray(next.children) ? next.children : [];
+    const jzch = Array.isArray(next.jzch) ? next.jzch : [];
+
+    if (jzch.length > 0) {
+      next.children = [...children, ...jzch];
+      delete next.jzch;
+    } else if (children.length > 0) {
+      next.children = children;
+    }
+
+    // 3) 递归 + 叶子数量 + 叶子 imgUrl
+    if (Array.isArray(next.children) && next.children.length > 0) {
+      next.children = next.children.map(walk);
+      next.count = next.children.reduce(
+        (sum: number, c: AnyNode) => sum + (c.count ?? 0),
+        0
+      );
+    } else {
+      // 🌿 叶子节点
+      next.count = 1;
+      // next.imgUrl = 'https://xxx.com/leaf.png';
+      next.imgUrl = img;
+    }
+
+    return next;
+  };
+
+  return tree.map(walk);
+}
+
+function onImgDragStart(e: DragEvent, data) {
+  if (!e.dataTransfer || !data.imgUrl) return;
+
+  const url = new URL(data.imgUrl, window.location.href).href;
+
+  e.dataTransfer.setData('text/uri-list', url);
+  e.dataTransfer.setData('text/plain', url);
+  e.dataTransfer.setData('text/x-moz-url', `${url}\n${data.name ?? ''}`);
+
   e.dataTransfer.setData(
     'application/x-tree-image',
     JSON.stringify({
       kind: 'TREE_IMAGE',
-      nodeId: data.id,
-      label: data.label,
-      imageUrl: data.imgUrl
+      ...data
     })
   );
 
-  // 可选：拖拽效果
+  // ✅ 关键：Firefox 依赖真实 File
+  const file = leafFileRef.value;
+  if (file) {
+    try {
+      e.dataTransfer.items.add(file);
+    } catch (err) {
+      console.warn('items.add(file) failed', err);
+    }
+  } else {
+    // 兜底：没预加载好就阻止拖拽（否则 Firefox 可能导不进）
+    e.preventDefault();
+    preloadLeafFile();
+  }
+
   e.dataTransfer.effectAllowed = 'copy';
 }
 
@@ -77,6 +142,10 @@ function onElementsDeleted(payload: { deleted: any[] }) {
 function onExternalImageDropSuccess(payload) {
   console.log('添加', payload);
 }
+onMounted(async () => {
+  // 调接口返回树数据
+  await preloadLeafFile();
+});
 </script>
 
 <template>
