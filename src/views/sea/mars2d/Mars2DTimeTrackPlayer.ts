@@ -452,7 +452,18 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       return;
     }
 
+    if (!this.externalPlaying) {
+      const nextIndex = this.triggerTimes.findIndex(time => time >= t);
+      this.nextTriggerIndex =
+        nextIndex === -1 ? this.triggerTimes.length : nextIndex;
+      this.lastGlobalTime = t;
+      return;
+    }
+
     if (t < this.lastGlobalTime) {
+      const nextIndex = this.triggerTimes.findIndex(time => time >= t);
+      this.nextTriggerIndex =
+        nextIndex === -1 ? this.triggerTimes.length : nextIndex;
       this.lastGlobalTime = t;
       return;
     }
@@ -462,7 +473,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       this.triggerTimes[this.nextTriggerIndex] <= t
     ) {
       const triggerTime = this.triggerTimes[this.nextTriggerIndex];
-      if (triggerTime > this.lastGlobalTime) {
+      if (triggerTime >= this.lastGlobalTime) {
         this.emit('trigger', triggerTime);
       }
       this.nextTriggerIndex += 1;
