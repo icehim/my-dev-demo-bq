@@ -20,8 +20,9 @@ import { Mars2DTimeTrackPlayer } from './Mars2DTimeTrackPlayer';
 import type { TimedPoint } from './Mars2DTimeTrackPlayer';
 
 // 本地模拟数据（后续替换成后端请求返回）
-import fc from './data.json';
+import fc from './newData.json';
 import { FleetTimelineController } from '@/views/sea/mars2d/FleetTimelineController';
+import dayjs from 'dayjs';
 
 let map: mars2d.Map;
 
@@ -344,16 +345,11 @@ onMounted(async () => {
 });
 
 const handleShipTrigger = async (shipId: string, triggerTime: number) => {
-  await fetch('/api/ship/trigger', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      shipId,
-      triggerTime
-    })
-  });
+  console.log(
+    '触发：',
+    shipId,
+    dayjs(triggerTime).format('YYYY-MM-DD hh:mm:ss')
+  );
 };
 
 onBeforeUnmount(() => {
