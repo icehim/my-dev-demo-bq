@@ -154,7 +154,7 @@ function bearingDeg(
  * ------------------------------------------------------------
  * 单目标时间轴播放器：
  * - new(map, points, options)
- * - start() / pause() / setSpeedFactor()
+ * - setTime() / setSpeedFactor()
  * - setTime(t) 支持拖动到任意时间点
  */
 export class Mars2DTimeTrackPlayer extends Emitter {
@@ -179,15 +179,11 @@ export class Mars2DTimeTrackPlayer extends Emitter {
 
   /** 轨迹点数组（按 t 升序） */
   private points: TimedPoint[];
+  /** 轨迹点坐标缓存（避免每帧重复 map） */
+  private baseLatLngs: { lat: number; lng: number }[];
   /** 合并后的配置（带默认值） */
   private options: Required<TimeTrackPlayerOptions>;
 
-  /** 是否正在播放（RAF 是否在跑） */
-  private playing = false;
-  /** 上一次 RAF 的时间戳（performance.now） */
-  private lastTs = 0;
-  /** RAF id，用于 cancelAnimationFrame */
-  private rafId: number | null = null;
   /*全局播放状态*/
   private externalPlaying = false;
 
@@ -242,7 +238,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     if (!this.options.layer) map.addLayer(this.layer);
 
     // 全路径 latlngs（用于绘制底线/背景线）
-    const latlngs = this.points.map(p => ({ lat: p.lat, lng: p.lng }));
+    this.baseLatLngs = this.points.map(p => ({ lat: p.lat, lng: p.lng }));
 
     // 1) 未走/背景线：Polyline（静态虚线/淡色）
     //    ⚠️ 这个线建议不要在 applyTime 里每帧更新，否则看起来“会动”（几何缩短）。
@@ -255,7 +251,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       ...this.options.notPassedLineStyle
     };
     this.notPassedLine = new (mars2d as any).graphic.Polyline({
-      latlngs,
+      latlngs: this.baseLatLngs,
       style: notPassedStyleBase
     });
 
@@ -274,13 +270,13 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       ...this.options.passedLineStyle
     };
     this.passedLine = new (mars2d as any).graphic.AntPath({
-      latlngs: [latlngs[0]],
+      latlngs: [this.baseLatLngs[0]],
       style: passedStyleBase
     });
 
     // 3) marker：跟随时间变化 setLatLng
     this.marker = new (mars2d as any).graphic.Marker({
-      latlng: latlngs[0],
+      latlng: this.baseLatLngs[0],
       style: this.options.markerStyle
     });
 
@@ -374,32 +370,6 @@ export class Mars2DTimeTrackPlayer extends Emitter {
   }
 
   /**
-   * RAF 循环：
-   * - dt（秒） = 当前帧与上一帧的时间差
-   * - 推进轨迹时间：currentTime += dt * 1000 * speedFactor
-   */
-  private loop = () => {
-    if (!this.playing) return;
-
-    const now = performance.now();
-    const dt = (now - this.lastTs) / 1000;
-    this.lastTs = now;
-
-    const nextTime = this.currentTime + dt * 1000 * this.options.speedFactor;
-    if (nextTime >= this.endTime) {
-      this.setTime(this.endTime);
-      this.playing = false;
-      // 播放结束：停掉 AntPath（避免线还在动）
-      this.passedLine?.setStyle?.({ paused: true });
-      this.emit('finished');
-      return;
-    }
-
-    this.setTime(nextTime);
-    this.rafId = requestAnimationFrame(this.loop);
-  };
-
-  /**
    * 核心：给定时间 t，通过插值计算当前位置，并更新图形
    */
   private applyTime(t: number) {
@@ -435,15 +405,14 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     }
 
     // 5) 更新已走线（增长）
-    const base = this.points.map(p => ({ lat: p.lat, lng: p.lng }));
-    const passed = base.slice(0, i + 1);
+    const passed = this.baseLatLngs.slice(0, i + 1);
     passed.push(pos);
     this.passedLine.setLatLngs(passed);
 
     // ✅ 未走线（背景线）一般不要更新：
     // - 如果你想要“未走线从当前位置到终点逐渐缩短”，才需要 setLatLngs(notPassed)
     // - 如果你想要截图那种“未走线不动，已走线覆盖上去”，就保持不更新
-    // const notPassed = [pos, ...base.slice(i + 1)]
+    // const notPassed = [pos, ...this.baseLatLngs.slice(i + 1)]
     // this.notPassedLine.setLatLngs(notPassed)
 
     // 6) 地图联动（慎用：多船同时播放时会很晕）
