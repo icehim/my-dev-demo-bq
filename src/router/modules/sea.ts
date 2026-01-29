@@ -33,7 +33,7 @@ export default {
     {
       path: '/sea/excalidraw',
       name: 'excalidraw',
-      component: () => import('@/views/sea/excalidraw/index.vue'),
+      component: () => import('@/views/sea/excalidraw/tree-img-drag.vue'),
       meta: {
         title: 'excalidraw'
       }

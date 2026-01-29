@@ -315,7 +315,7 @@ export default function ExcalidrawPure(props: ExcalidrawVueProps) {
       className={className}
       style={{
         height: '100%',
-        width: '1200px',
+        width: '100%',
         position: 'relative',
         overflow: 'hidden',
         boxSizing: 'border-box'
