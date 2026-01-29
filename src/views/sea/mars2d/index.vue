@@ -60,7 +60,11 @@ const formatTime = (t: number) => {
  * - 每个 feature => { id, points[] }
  */
 function parseShipsFromGeoJSON(fcAny: any) {
-  const ships: Array<{ id: string; points: TimedPoint[] }> = [];
+  const ships: Array<{
+    id: string;
+    points: TimedPoint[];
+    triggerTimes: number[];
+  }> = [];
 
   const features = fcAny?.features ?? [];
   features.forEach((f: any, idx: number) => {
@@ -79,8 +83,16 @@ function parseShipsFromGeoJSON(fcAny: any) {
       points.push({ lat, lng, t });
     }
 
+    const triggerTimes = (f?.properties?.triggerTimes ?? [])
+      .map((time: string) => Date.parse(time))
+      .filter((time: number) => Number.isFinite(time));
+
     if (points.length >= 2) {
-      ships.push({ id: f?.properties?.id ?? `ship-${idx + 1}`, points });
+      ships.push({
+        id: f?.properties?.id ?? `ship-${idx + 1}`,
+        points,
+        triggerTimes
+      });
     }
   });
 
@@ -155,7 +167,8 @@ async function initFleetFromGeojson(fcAny: any) {
         dashArray: '8,8',
         lineCap: 'butt',
         lineJoin: 'miter'
-      }
+      },
+      triggerTimes: s.triggerTimes
     });
 
     // ---------------------------
@@ -252,6 +265,10 @@ async function initFleetFromGeojson(fcAny: any) {
       }, 0);
     });
 
+    p.on('trigger', triggerTime => {
+      void handleShipTrigger(s.id, triggerTime);
+    });
+
     players.push(p);
   });
 
@@ -325,6 +342,19 @@ onMounted(async () => {
   // 2) 初始化船队（本地 mock；后续替换后端返回）
   await initFleetFromGeojson(fc);
 });
+
+const handleShipTrigger = async (shipId: string, triggerTime: number) => {
+  await fetch('/api/ship/trigger', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      shipId,
+      triggerTime
+    })
+  });
+};
 
 onBeforeUnmount(() => {
   // 清理播放器实例
