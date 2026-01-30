@@ -3,10 +3,11 @@
  * index.vue（Vue3 + <script setup> + TypeScript）
  * ------------------------------------------------------------
  * 这个页面演示：
- * - 读取 GeoJSON（FeatureCollection）
- *   - geometry.coordinates: [[lng,lat], ...]
- *   - properties.coordTimes: [ISO时间字符串, ...] 与 coordinates 一一对应
- * - 每个 feature 生成一艘船（一个 Mars2DTimeTrackPlayer 实例）
+ * - 读取后端数组数据（非 GeoJSON）
+ *   - cbnm: 船舶标识
+ *   - resultVo: [{ jd, wd, time }]
+ *   - triggerTimes: [ISO时间字符串, ...]
+ * - 每个船舶记录生成一艘船（一个 Mars2DTimeTrackPlayer 实例）
  * - 支持：播放/暂停/倍速/时间轴拖动（seek）
  * - 支持：hover popup（轻量信息） + click popup（固定详情）
  *
@@ -20,8 +21,9 @@ import { Mars2DTimeTrackPlayer } from './Mars2DTimeTrackPlayer';
 import type { TimedPoint } from './Mars2DTimeTrackPlayer';
 
 // 本地模拟数据（后续替换成后端请求返回）
-import fc from './data.json';
+import fc from './newData.json';
 import { FleetTimelineController } from '@/views/sea/mars2d/FleetTimelineController';
+import dayjs from 'dayjs';
 
 let map: mars2d.Map;
 
@@ -56,31 +58,48 @@ const formatTime = (t: number) => {
 };
 
 /**
- * 解析后端 GeoJSON：
- * - 每个 feature => { id, points[] }
+ * 解析后端数据：
+ * - 每个记录 => { id, points[], triggerTimes[] }
  */
 function parseShipsFromGeoJSON(fcAny: any) {
-  const ships: Array<{ id: string; points: TimedPoint[] }> = [];
+  const ships: Array<{
+    id: string;
+    points: TimedPoint[];
+    triggerTimes: number[];
+  }> = [];
 
-  const features = fcAny?.features ?? [];
-  features.forEach((f: any, idx: number) => {
-    const coords: number[][] = f?.geometry?.coordinates ?? [];
-    const times: string[] = f?.properties?.coordTimes ?? [];
+  const records = Array.isArray(fcAny)
+    ? fcAny
+    : Array.isArray(fcAny?.data)
+      ? fcAny.data
+      : fcAny
+        ? [fcAny]
+        : [];
+  records.forEach((record: any, idx: number) => {
+    const trackPoints = record?.resultVo ?? [];
+    const points: TimedPoint[] = trackPoints
+      .map((point: any) => {
+        const lng = Number(point?.jd);
+        const lat = Number(point?.wd);
+        const t = Date.parse(point?.time);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+        if (!Number.isFinite(t)) return null;
+        return { lat, lng, t };
+      })
+      .filter((point: TimedPoint | null): point is TimedPoint =>
+        Boolean(point)
+      );
 
-    // 坐标与时间一一对应，取最短长度
-    const n = Math.min(coords.length, times.length);
-    if (n < 2) return;
-
-    const points: TimedPoint[] = [];
-    for (let i = 0; i < n; i++) {
-      const [lng, lat] = coords[i];
-      const t = Date.parse(times[i]); // ISO -> ms（UTC）
-      if (!Number.isFinite(t)) continue;
-      points.push({ lat, lng, t });
-    }
+    const triggerTimes = (record?.triggerTimes ?? [])
+      .map((time: string) => Date.parse(time))
+      .filter((time: number) => Number.isFinite(time));
 
     if (points.length >= 2) {
-      ships.push({ id: f?.properties?.id ?? `ship-${idx + 1}`, points });
+      ships.push({
+        id: record?.cbnm ?? `ship-${idx + 1}`,
+        points,
+        triggerTimes
+      });
     }
   });
 
@@ -155,7 +174,8 @@ async function initFleetFromGeojson(fcAny: any) {
         dashArray: '8,8',
         lineCap: 'butt',
         lineJoin: 'miter'
-      }
+      },
+      triggerTimes: s.triggerTimes
     });
 
     // ---------------------------
@@ -252,6 +272,10 @@ async function initFleetFromGeojson(fcAny: any) {
       }, 0);
     });
 
+    p.on('trigger', triggerTime => {
+      void handleShipTrigger(s.id, triggerTime);
+    });
+
     players.push(p);
   });
 
@@ -325,6 +349,14 @@ onMounted(async () => {
   // 2) 初始化船队（本地 mock；后续替换后端返回）
   await initFleetFromGeojson(fc);
 });
+
+const handleShipTrigger = async (shipId: string, triggerTime: number) => {
+  console.log(
+    '触发：',
+    shipId,
+    dayjs(triggerTime).format('YYYY-MM-DD hh:mm:ss')
+  );
+};
 
 onBeforeUnmount(() => {
   // 清理播放器实例
