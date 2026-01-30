@@ -3,10 +3,11 @@
  * index.vue（Vue3 + <script setup> + TypeScript）
  * ------------------------------------------------------------
  * 这个页面演示：
- * - 读取 GeoJSON（FeatureCollection）
- *   - geometry.coordinates: [[lng,lat], ...]
- *   - properties.coordTimes: [ISO时间字符串, ...] 与 coordinates 一一对应
- * - 每个 feature 生成一艘船（一个 Mars2DTimeTrackPlayer 实例）
+ * - 读取后端数组数据（非 GeoJSON）
+ *   - cbnm: 船舶标识
+ *   - resultVo: [{ jd, wd, time }]
+ *   - triggerTimes: [ISO时间字符串, ...]
+ * - 每个船舶记录生成一艘船（一个 Mars2DTimeTrackPlayer 实例）
  * - 支持：播放/暂停/倍速/时间轴拖动（seek）
  * - 支持：hover popup（轻量信息） + click popup（固定详情）
  *
@@ -57,8 +58,8 @@ const formatTime = (t: number) => {
 };
 
 /**
- * 解析后端 GeoJSON：
- * - 每个 feature => { id, points[] }
+ * 解析后端数据：
+ * - 每个记录 => { id, points[], triggerTimes[] }
  */
 function parseShipsFromGeoJSON(fcAny: any) {
   const ships: Array<{
@@ -67,22 +68,31 @@ function parseShipsFromGeoJSON(fcAny: any) {
     triggerTimes: number[];
   }> = [];
 
-  const features = fcAny?.features ?? [];
-  features.forEach((f: any, idx: number) => {
-    const coords: number[][] = f?.geometry?.coordinates ?? [];
-    const times: string[] = f?.properties?.coordTimes ?? [];
+  const records = Array.isArray(fcAny)
+    ? fcAny
+    : Array.isArray(fcAny?.data)
+      ? fcAny.data
+      : fcAny
+        ? [fcAny]
+        : [];
+  records.forEach((record: any, idx: number) => {
+    const trackPoints = record?.resultVo ?? [];
+    const points: TimedPoint[] = trackPoints
+      .map((point: any) => {
+        const lng = Number(point?.jd);
+        const lat = Number(point?.wd);
+        const t = Date.parse(point?.time);
+        if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null;
+        if (!Number.isFinite(t)) return null;
+        return { lat, lng, t };
+      })
+      .filter((point: TimedPoint | null): point is TimedPoint =>
+        Boolean(point)
+      );
 
-    // 坐标与时间一一对应，取最短长度
-    const n = Math.min(coords.length, times.length);
-    if (n < 2) return;
-
-    const points: TimedPoint[] = [];
-    for (let i = 0; i < n; i++) {
-      const [lng, lat] = coords[i];
-      const t = Date.parse(times[i]); // ISO -> ms（UTC）
-      if (!Number.isFinite(t)) continue;
-      points.push({ lat, lng, t });
-    }
+    const triggerTimes = (record?.triggerTimes ?? [])
+      .map((time: string) => Date.parse(time))
+      .filter((time: number) => Number.isFinite(time));
 
     const triggerTimes = (f?.properties?.triggerTimes ?? [])
       .map((time: string) => Date.parse(time))
@@ -90,7 +100,7 @@ function parseShipsFromGeoJSON(fcAny: any) {
 
     if (points.length >= 2) {
       ships.push({
-        id: f?.properties?.id ?? `ship-${idx + 1}`,
+        id: record?.cbnm ?? `ship-${idx + 1}`,
         points,
         triggerTimes
       });
