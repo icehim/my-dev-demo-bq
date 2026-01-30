@@ -94,6 +94,10 @@ function parseShipsFromGeoJSON(fcAny: any) {
       .map((time: string) => Date.parse(time))
       .filter((time: number) => Number.isFinite(time));
 
+    const triggerTimes = (f?.properties?.triggerTimes ?? [])
+      .map((time: string) => Date.parse(time))
+      .filter((time: number) => Number.isFinite(time));
+
     if (points.length >= 2) {
       ships.push({
         id: record?.cbnm ?? `ship-${idx + 1}`,
