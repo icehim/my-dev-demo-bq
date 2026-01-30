@@ -334,7 +334,6 @@ const columns: VxeGridPropTypes.Columns<RowVO> = [
   { type: 'seq', width: 70 },
   { field: 'id', title: 'id', width: 120 },
   { field: 'tdmc', title: '梯队名称' },
-  { field: 'name', title: '名称' },
   {
     field: 'date',
     title: '日期',
@@ -358,7 +357,9 @@ const columns: VxeGridPropTypes.Columns<RowVO> = [
         );
       }
     }
-  }
+  },
+  { field: 'cbmc', title: '船舶名称' },
+  { field: 'zzgkmc', title: '装载港口名称' }
 ];
 // 只在“梯队的首行”渲染日期组件
 function isTierFirstRow(visibleData: RowVO[], rowIndex: number) {
@@ -369,11 +370,18 @@ function isTierFirstRow(visibleData: RowVO[], rowIndex: number) {
 const mergeCells = ref<
   { row: number; col: number; rowspan: number; colspan: number }[]
 >([]);
-/**
- * 你原来的规则：相邻相同值纵向合并（rowspan）
- * 这里示例只合并 name；需要多字段就加进去即可
- */
-const mergeByTdmcFields = ['tdmc', 'date'] as const;
+
+// 1) 梯队层：在同一 tdmc 段内一起合并的字段
+const mergeTierFields = ['tdmc', 'date'] as const;
+
+// 2) 船舶层：在同一 tdmc 段内，再按 cbmc 连续段分块；这些字段跟着 cbmc 段一起合并
+//    （常见：cbmc、船类型、IMO、船公司… 你自己加）
+const mergeShipFields = ['cbmc'] as const;
+
+// 3) 港口/明细层：在同一 cbmc 段内，再按“该字段自身相邻且相同”合并
+//    这里不止 zzgkmc，一个数组塞很多字段即可
+const mergeDetailFields = ['zzgkmc'] as const;
+
 function buildMergeCellsByVisible() {
   const $grid = gridRef.value;
   if (!$grid) return;
@@ -388,35 +396,62 @@ function buildMergeCellsByVisible() {
     colspan: number;
   }[] = [];
 
-  // 1) 先按 tdmc 扫描出所有“段”（rowspan）
-  let start = 0;
-  while (start < visibleData.length) {
-    const tdmcVal = (visibleData[start] as any)?.tdmc;
-    if (tdmcVal == null || tdmcVal === '') {
-      start++;
-      continue;
-    }
+  const colIndexOf = (field: string) =>
+    visibleColumn.findIndex(col => col.field === field);
 
-    let end = start + 1;
-    while (
-      end < visibleData.length &&
-      (visibleData[end] as any)?.tdmc === tdmcVal
-    ) {
-      end++;
-    }
+  const pushMerge = (row: number, field: string, rowspan: number) => {
+    if (rowspan <= 1) return;
+    const col = colIndexOf(field);
+    if (col >= 0) result.push({ row, col, rowspan, colspan: 1 });
+  };
 
-    const rowspan = end - start;
-    if (rowspan > 1) {
-      // 2) 把同一个段的 rowspan 应用到 tdmc/date 等多个列
-      for (const field of mergeByTdmcFields) {
-        const colIndex = visibleColumn.findIndex(col => col.field === field);
-        if (colIndex >= 0) {
-          result.push({ row: start, col: colIndex, rowspan, colspan: 1 });
+  const isBlank = (v: any) => v == null || v === '';
+
+  // 扫描 [start, end) 区间内，按 field 的“相邻且相同”切段
+  const scanSegments = (start: number, end: number, field: string) => {
+    const segs: { start: number; end: number; value: any }[] = [];
+    let i = start;
+
+    while (i < end) {
+      const v = (visibleData[i] as any)?.[field];
+      if (isBlank(v)) {
+        i++;
+        continue;
+      }
+      let j = i + 1;
+      while (j < end && (visibleData[j] as any)?.[field] === v) j++;
+      segs.push({ start: i, end: j, value: v });
+      i = j;
+    }
+    return segs;
+  };
+
+  // 1) 先按 tdmc 切梯队段
+  const tierSegs = scanSegments(0, visibleData.length, 'tdmc');
+
+  for (const tier of tierSegs) {
+    const tierRowspan = tier.end - tier.start;
+
+    // 梯队层字段合并
+    for (const f of mergeTierFields) pushMerge(tier.start, f, tierRowspan);
+
+    // 2) 梯队段内：按 cbmc 切船舶段
+    const shipSegs = scanSegments(tier.start, tier.end, 'cbmc');
+
+    for (const ship of shipSegs) {
+      const shipRowspan = ship.end - ship.start;
+
+      // 船舶层字段（跟随 cbmc 段）一起合并
+      for (const f of mergeShipFields) pushMerge(ship.start, f, shipRowspan);
+
+      // 3) 船舶段内：明细字段逐个做“相邻且相同”合并（不互相绑定）
+      for (const field of mergeDetailFields) {
+        const detailSegs = scanSegments(ship.start, ship.end, field);
+        for (const seg of detailSegs) {
+          pushMerge(seg.start, field, seg.end - seg.start);
         }
       }
     }
-
-    start = end;
   }
 
   mergeCells.value = result;

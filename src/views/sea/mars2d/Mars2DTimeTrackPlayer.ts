@@ -95,10 +95,16 @@ export interface TimeTrackPlayerOptions {
 
   /** 可选：外部传入图层（如果不传，本类会自己 new GraphicLayer 并 add 到 map） */
   layer?: any;
+
+  /**
+   * 触发时间点（ms，UTC）
+   * - 命中这些时间点时触发事件，用于回调接口或业务联动
+   */
+  triggerTimes?: number[];
 }
 
 /** 对外事件：业务层可监听，用于同步 UI（如时间轴 slider） */
-type EventName = 'start' | 'pause' | 'finished' | 'time';
+type EventName = 'start' | 'pause' | 'finished' | 'time' | 'trigger';
 type Handler = (...args: any[]) => void;
 
 /**
@@ -154,7 +160,7 @@ function bearingDeg(
  * ------------------------------------------------------------
  * 单目标时间轴播放器：
  * - new(map, points, options)
- * - start() / pause() / setSpeedFactor()
+ * - setTime() / setSpeedFactor()
  * - setTime(t) 支持拖动到任意时间点
  */
 export class Mars2DTimeTrackPlayer extends Emitter {
@@ -179,15 +185,17 @@ export class Mars2DTimeTrackPlayer extends Emitter {
 
   /** 轨迹点数组（按 t 升序） */
   private points: TimedPoint[];
+  /** 轨迹点坐标缓存（避免每帧重复 map） */
+  private baseLatLngs: { lat: number; lng: number }[];
   /** 合并后的配置（带默认值） */
   private options: Required<TimeTrackPlayerOptions>;
+  /** 触发时间点（排序后） */
+  private triggerTimes: number[];
+  /** 下一次待触发的索引 */
+  private nextTriggerIndex = 0;
+  /** 上一次全局时间（用于判断跨越触发点） */
+  private lastGlobalTime: number;
 
-  /** 是否正在播放（RAF 是否在跑） */
-  private playing = false;
-  /** 上一次 RAF 的时间戳（performance.now） */
-  private lastTs = 0;
-  /** RAF id，用于 cancelAnimationFrame */
-  private rafId: number | null = null;
   /*全局播放状态*/
   private externalPlaying = false;
 
@@ -213,6 +221,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     this.endTime = this.points[this.points.length - 1].t;
     this.currentTime = this.startTime;
     this.currentPos = { lat: this.points[0].lat, lng: this.points[0].lng };
+    this.lastGlobalTime = this.startTime;
 
     // marker 默认样式（业务层可覆盖）
     const defaultMarkerStyle = {
@@ -234,15 +243,20 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       notPassedLineColor: options.notPassedLineColor ?? '#00c2ff',
       passedLineStyle: options.passedLineStyle ?? {},
       notPassedLineStyle: options.notPassedLineStyle ?? {},
-      layer: options.layer ?? null
+      layer: options.layer ?? null,
+      triggerTimes: options.triggerTimes ?? []
     } as Required<TimeTrackPlayerOptions>;
+
+    this.triggerTimes = (this.options.triggerTimes ?? [])
+      .filter(t => Number.isFinite(t))
+      .sort((a, b) => a - b);
 
     // 图层：如果外部没传，就内部创建，并 add 到地图
     this.layer = this.options.layer || new (mars2d as any).layer.GraphicLayer();
     if (!this.options.layer) map.addLayer(this.layer);
 
     // 全路径 latlngs（用于绘制底线/背景线）
-    const latlngs = this.points.map(p => ({ lat: p.lat, lng: p.lng }));
+    this.baseLatLngs = this.points.map(p => ({ lat: p.lat, lng: p.lng }));
 
     // 1) 未走/背景线：Polyline（静态虚线/淡色）
     //    ⚠️ 这个线建议不要在 applyTime 里每帧更新，否则看起来“会动”（几何缩短）。
@@ -255,7 +269,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       ...this.options.notPassedLineStyle
     };
     this.notPassedLine = new (mars2d as any).graphic.Polyline({
-      latlngs,
+      latlngs: this.baseLatLngs,
       style: notPassedStyleBase
     });
 
@@ -274,13 +288,13 @@ export class Mars2DTimeTrackPlayer extends Emitter {
       ...this.options.passedLineStyle
     };
     this.passedLine = new (mars2d as any).graphic.AntPath({
-      latlngs: [latlngs[0]],
+      latlngs: [this.baseLatLngs[0]],
       style: passedStyleBase
     });
 
     // 3) marker：跟随时间变化 setLatLng
     this.marker = new (mars2d as any).graphic.Marker({
-      latlng: latlngs[0],
+      latlng: this.baseLatLngs[0],
       style: this.options.markerStyle
     });
 
@@ -315,6 +329,7 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     this.emit('time', this.currentTime, this.currentPos, this.currentIndex);
   }
   setGlobalTime(t: number) {
+    this.handleTriggerTimes(t);
     // 还没开始：停在起点，AntPath 停
     if (t <= this.startTime) {
       this.setTime(this.startTime);
@@ -358,6 +373,8 @@ export class Mars2DTimeTrackPlayer extends Emitter {
   /** 回到起点 */
   reset() {
     this.setTime(this.startTime);
+    this.lastGlobalTime = this.startTime;
+    this.nextTriggerIndex = 0;
   }
 
   /**
@@ -372,32 +389,6 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     this.layer.removeGraphic(this.notPassedLine);
     if (!this.options.layer) this.map.removeLayer(this.layer);
   }
-
-  /**
-   * RAF 循环：
-   * - dt（秒） = 当前帧与上一帧的时间差
-   * - 推进轨迹时间：currentTime += dt * 1000 * speedFactor
-   */
-  private loop = () => {
-    if (!this.playing) return;
-
-    const now = performance.now();
-    const dt = (now - this.lastTs) / 1000;
-    this.lastTs = now;
-
-    const nextTime = this.currentTime + dt * 1000 * this.options.speedFactor;
-    if (nextTime >= this.endTime) {
-      this.setTime(this.endTime);
-      this.playing = false;
-      // 播放结束：停掉 AntPath（避免线还在动）
-      this.passedLine?.setStyle?.({ paused: true });
-      this.emit('finished');
-      return;
-    }
-
-    this.setTime(nextTime);
-    this.rafId = requestAnimationFrame(this.loop);
-  };
 
   /**
    * 核心：给定时间 t，通过插值计算当前位置，并更新图形
@@ -435,20 +426,59 @@ export class Mars2DTimeTrackPlayer extends Emitter {
     }
 
     // 5) 更新已走线（增长）
-    const base = this.points.map(p => ({ lat: p.lat, lng: p.lng }));
-    const passed = base.slice(0, i + 1);
+    const passed = this.baseLatLngs.slice(0, i + 1);
     passed.push(pos);
     this.passedLine.setLatLngs(passed);
 
     // ✅ 未走线（背景线）一般不要更新：
     // - 如果你想要“未走线从当前位置到终点逐渐缩短”，才需要 setLatLngs(notPassed)
     // - 如果你想要截图那种“未走线不动，已走线覆盖上去”，就保持不更新
-    // const notPassed = [pos, ...base.slice(i + 1)]
+    // const notPassed = [pos, ...this.baseLatLngs.slice(i + 1)]
     // this.notPassedLine.setLatLngs(notPassed)
 
     // 6) 地图联动（慎用：多船同时播放时会很晕）
     if (this.options.panTo) {
       this.map.setView(pos);
     }
+  }
+
+  /**
+   * 检查是否跨越触发时间点
+   * - 只在时间前进时触发
+   */
+  private handleTriggerTimes(t: number) {
+    if (!this.triggerTimes.length) {
+      this.lastGlobalTime = t;
+      return;
+    }
+
+    if (!this.externalPlaying) {
+      const nextIndex = this.triggerTimes.findIndex(time => time >= t);
+      this.nextTriggerIndex =
+        nextIndex === -1 ? this.triggerTimes.length : nextIndex;
+      this.lastGlobalTime = t;
+      return;
+    }
+
+    if (t < this.lastGlobalTime) {
+      const nextIndex = this.triggerTimes.findIndex(time => time >= t);
+      this.nextTriggerIndex =
+        nextIndex === -1 ? this.triggerTimes.length : nextIndex;
+      this.lastGlobalTime = t;
+      return;
+    }
+
+    while (
+      this.nextTriggerIndex < this.triggerTimes.length &&
+      this.triggerTimes[this.nextTriggerIndex] <= t
+    ) {
+      const triggerTime = this.triggerTimes[this.nextTriggerIndex];
+      if (triggerTime >= this.lastGlobalTime) {
+        this.emit('trigger', triggerTime);
+      }
+      this.nextTriggerIndex += 1;
+    }
+
+    this.lastGlobalTime = t;
   }
 }
