@@ -330,13 +330,15 @@ function onTierDateChange(anchorRow: RowVO, val: any) {
  */
 const data = ref<RowVO[]>([]);
 const columns: VxeGridPropTypes.Columns<RowVO> = [
-  { type: 'checkbox', width: 60 },
-  { type: 'seq', width: 70 },
-  { field: 'id', title: 'id', width: 120 },
-  { field: 'tdmc', title: '梯队名称' },
+  { fixed: 'left', type: 'checkbox', width: 60 },
+  { fixed: 'left', type: 'seq', width: 70 },
+  { fixed: 'left', field: 'id', title: 'id' },
+  { fixed: 'left', field: 'tdmc', title: '梯队名称' },
   {
+    fixed: 'left',
     field: 'date',
     title: '日期',
+    width: 180,
     slots: {
       default: ({ row, rowIndex }) => {
         const $grid = gridRef.value;
@@ -351,6 +353,7 @@ const columns: VxeGridPropTypes.Columns<RowVO> = [
           <el-date-picker
             modelValue={row.date}
             type="datetime"
+            class="w-[150px]!"
             placeholder="请选择日期"
             onUpdate:modelValue={(val: any) => onTierDateChange(row, val)}
           />
@@ -358,8 +361,33 @@ const columns: VxeGridPropTypes.Columns<RowVO> = [
       }
     }
   },
-  { field: 'cbmc', title: '船舶名称' },
-  { field: 'zzgkmc', title: '装载港口名称' }
+  { fixed: 'left', field: 'cbmc', title: '船舶名称' },
+  { fixed: 'left', field: 'zzgkmc', title: '装载港口名称' },
+  { fixed: 'left', field: 'imo', title: 'IMO号' },
+  { fixed: 'left', field: 'mmsi', title: 'MMSI' },
+  { fixed: 'left', field: 'callsign', title: '呼号' },
+  { fixed: 'left', field: 'shipType', title: '船舶类型' },
+  { fixed: 'left', field: 'shipSubType', title: '船舶子类型' },
+  { field: 'flag', title: '船旗国' },
+  { field: 'shipOwner', title: '船东' },
+  { field: 'shipOperator', title: '船舶经营人' },
+  { field: 'shipCompany', title: '船公司' },
+  { field: 'classSociety', title: '船级社' },
+  { field: 'buildYear', title: '建造年份' },
+  { field: 'buildYard', title: '建造船厂' },
+  { field: 'length', title: '船长(m)' },
+  { field: 'breadth', title: '船宽(m)' },
+  { field: 'depth', title: '型深(m)' },
+  { fixed: 'right', field: 'draft', title: '吃水(m)' },
+  { fixed: 'right', field: 'dwt', title: '载重吨(DWT)' },
+  { fixed: 'right', field: 'grt', title: '总吨(GRT)' },
+  { fixed: 'right', field: 'nrt', title: '净吨(NRT)' },
+  { fixed: 'right', field: 'teu', title: '箱位(TEU)' },
+  { fixed: 'right', field: 'engineType', title: '主机型号' },
+  { fixed: 'right', field: 'enginePower', title: '主机功率(kW)' },
+  { fixed: 'right', field: 'serviceSpeed', title: '服务航速(kn)' },
+  { fixed: 'right', field: 'maxSpeed', title: '最大航速(kn)' },
+  { fixed: 'right', field: 'fuelType', title: '燃料类型' }
 ];
 // 只在“梯队的首行”渲染日期组件
 function isTierFirstRow(visibleData: RowVO[], rowIndex: number) {
@@ -380,7 +408,35 @@ const mergeShipFields = ['cbmc'] as const;
 
 // 3) 港口/明细层：在同一 cbmc 段内，再按“该字段自身相邻且相同”合并
 //    这里不止 zzgkmc，一个数组塞很多字段即可
-const mergeDetailFields = ['zzgkmc'] as const;
+const mergeDetailFields = [
+  'zzgkmc',
+  'zzgkmc',
+  'imo',
+  'mmsi',
+  'callsign',
+  'shipType',
+  'shipSubType',
+  'flag',
+  'shipOwner',
+  'shipOperator',
+  'shipCompany',
+  'classSociety',
+  'buildYear',
+  'buildYard',
+  'length',
+  'breadth',
+  'depth',
+  'draft',
+  'dwt',
+  'grt',
+  'nrt',
+  'teu',
+  'engineType',
+  'enginePower',
+  'serviceSpeed',
+  'maxSpeed',
+  'fuelType'
+] as const;
 
 function buildMergeCellsByVisible() {
   const $grid = gridRef.value;
@@ -405,7 +461,7 @@ function buildMergeCellsByVisible() {
     if (col >= 0) result.push({ row, col, rowspan, colspan: 1 });
   };
 
-  const isBlank = (v: any) => v == null || v === '';
+  // const isBlank = (v: any) => v == null || v === '';
 
   // 扫描 [start, end) 区间内，按 field 的“相邻且相同”切段
   const scanSegments = (start: number, end: number, field: string) => {
@@ -414,10 +470,10 @@ function buildMergeCellsByVisible() {
 
     while (i < end) {
       const v = (visibleData[i] as any)?.[field];
-      if (isBlank(v)) {
+      /*if (isBlank(v)) {
         i++;
         continue;
-      }
+      }*/
       let j = i + 1;
       while (j < end && (visibleData[j] as any)?.[field] === v) j++;
       segs.push({ start: i, end: j, value: v });
