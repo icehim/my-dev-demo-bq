@@ -12,67 +12,9 @@ import img_car2 from '@/assets/svg/货车.svg?raw';
 import img_car3 from '@/assets/svg/坦克.svg?raw';
 import img_car4 from '@/assets/svg/指挥车.svg?raw';
 import img_car5 from '@/assets/svg/装甲车.svg?raw';
-
-type TreeNode = {
-  id: string;
-  name?: string;
-  imgUrl?: string; // 给 <img> 用（string）
-  dragFile?: File; // 拖拽用（File）
-  type?: string;
-  wzmc?: string;
-  zbmc?: string;
-  count?: number;
-  children?: TreeNode[];
-  jzch?: TreeNode[];
-};
-const COLOR_MAP: Record<string, string> = {
-  car1: '#FF3B30',
-  car2: '#34C759',
-  car3: '#007AFF',
-  car4: '#AF52DE',
-  car5: '#FF9500'
-};
 const apiRef = ref<ExcalidrawImperativeAPI | null>(null);
 const treeProps = { children: 'children', label: 'name' };
-
-//给 <svg> 注入 style="color: xxx"
-function tintSvgWithCurrentColor(svgText: string, color: string) {
-  // 如果已经有 style，就补 color
-  if (/<svg[^>]*style=/.test(svgText)) {
-    return svgText.replace(
-      /<svg([^>]*)style=['"]([^'"]*)['"]/,
-      `<svg$1style="$2;color:${color};"`
-    );
-  }
-
-  // 否则直接加 style
-  return svgText.replace(/<svg\b([^>]*)>/, `<svg$1 style="color:${color};">`);
-}
-
-function svgTextToFile(svgText: string, filename: string) {
-  const blob = new Blob([svgText], { type: 'image/svg+xml' });
-  return new File([blob], filename, { type: 'image/svg+xml' });
-}
-function onApiReady(api: ExcalidrawImperativeAPI) {
-  apiRef.value = api;
-  console.log('API 就绪', api);
-}
-function getColoredSvgTextByType(type: string) {
-  // 这里 img_car1..5 必须是 svg 字符串
-  const raw =
-    type === 'car1'
-      ? img_car1
-      : type === 'car2'
-        ? img_car2
-        : type === 'car3'
-          ? img_car3
-          : type === 'car4'
-            ? img_car4
-            : img_car5;
-
-  const color = COLOR_MAP[type] ?? '#333';
-  return tintSvgWithCurrentColor(raw as unknown as string, color);
-}
+const treeData = ref<TreeNode[]>([]);
 
 function handleSceneChange(payload: {
   elements: readonly NonDeletedExcalidrawElement[];
@@ -82,13 +24,93 @@ function handleSceneChange(payload: {
   console.log(payload.elements);
 }
 
-const treeData = ref<TreeNode[]>([]);
+function onApiReady(api: ExcalidrawImperativeAPI) {
+  apiRef.value = api;
+  console.log('API 就绪', api);
+}
+
+type TreeNode = {
+  id: string;
+  name?: string;
+  imgUrl?: string;
+  dragFile?: File;
+  type?: 'car1' | 'car2' | 'car3' | 'car4' | 'car5';
+  wzmc?: string;
+  zbmc?: string;
+  count?: number;
+  children?: TreeNode[];
+  jzch?: TreeNode[];
+};
+
+const PALETTE = [
+  '#FF3B30',
+  '#34C759',
+  '#007AFF',
+  '#AF52DE',
+  '#FF9500',
+  '#FF2D55',
+  '#5856D6',
+  '#00C7BE',
+  '#FFCC00',
+  '#8E8E93',
+  '#A2845E',
+  '#30D158',
+  '#64D2FF',
+  '#BF5AF2',
+  '#FFD60A'
+];
+
+const parentColorMap = new Map<string, string>();
+function colorByParentId(parentId: string) {
+  const hit = parentColorMap.get(parentId);
+  if (hit) return hit;
+  const color = PALETTE[parentColorMap.size % PALETTE.length];
+  parentColorMap.set(parentId, color);
+  return color;
+}
+
+function getRawSvgByType(type: NonNullable<TreeNode['type']>) {
+  return type === 'car1'
+    ? img_car1
+    : type === 'car2'
+      ? img_car2
+      : type === 'car3'
+        ? img_car3
+        : type === 'car4'
+          ? img_car4
+          : img_car5;
+}
+
+function replaceCurrentColor(svgText: string, color: string) {
+  let out = svgText.replace(/fill=(['"])currentColor\1/gi, `fill="${color}"`);
+  out = out.replace(/stroke=(['"])currentColor\1/gi, `stroke="${color}"`);
+  return out;
+}
+
+function svgTextToFile(svgText: string, filename: string) {
+  return new File([svgText], filename, { type: 'image/svg+xml' });
+}
 
 function svgTextToDataUrl(svgText: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svgText)}`;
 }
+
+const coloredCache = new Map<string, { imgUrl: string; dragFile: File }>();
+function getColoredAssets(rawSvg: string, color: string, filename: string) {
+  const key = `${color}::${filename}`;
+  const hit = coloredCache.get(key);
+  if (hit) return hit;
+  const svgText = replaceCurrentColor(rawSvg, color);
+  const val = {
+    imgUrl: svgTextToDataUrl(svgText),
+    dragFile: svgTextToFile(svgText, filename)
+  };
+  coloredCache.set(key, val);
+  return val;
+}
+
 function normalizeTreeWithLeafCount(tree: TreeNode[]) {
-  const walk = (node: TreeNode): TreeNode => {
+  const walk = (node: TreeNode, parentId?: string): TreeNode => {
     const next: TreeNode = { ...node };
 
     if (next.wzmc || next.zbmc) {
@@ -107,28 +129,32 @@ function normalizeTreeWithLeafCount(tree: TreeNode[]) {
       next.children = children;
     }
 
-    if (Array.isArray(next.children) && next.children.length > 0) {
-      next.children = next.children.map(walk);
-      next.count = next.children.reduce(
-        (sum: number, c: TreeNode) => sum + (c.count ?? 0),
-        0
-      );
+    const hasKids = Array.isArray(next.children) && next.children.length > 0;
+
+    if (hasKids) {
+      next.children = next.children!.map(c => walk(c, next.id));
+      next.count = next.children!.reduce((sum, c) => sum + (c.count ?? 0), 0);
     } else {
       next.count = 1;
-      const coloredSvgText = getColoredSvgTextByType(next.type);
-      // ✅ 给树展示用
-      next.imgUrl = svgTextToDataUrl(coloredSvgText);
-      // ✅ 给拖拽用（Firefox 关键）
-      next.dragFile = svgTextToFile(
-        coloredSvgText,
-        `${next.type}-${next.id}.svg`
+      const t = next.type ?? 'car1';
+      const raw = getRawSvgByType(t);
+      const keyParentId = parentId ?? next.id; // 顶层直接是叶子时兜底
+      const color = colorByParentId(keyParentId);
+      const { imgUrl, dragFile } = getColoredAssets(
+        raw as unknown as string,
+        color,
+        `${t}-${next.id}.svg`
       );
+      next.imgUrl = imgUrl;
+      next.dragFile = dragFile;
     }
 
     return next;
   };
 
-  return tree.map(walk);
+  parentColorMap.clear();
+  coloredCache.clear();
+  return tree.map(root => walk(root, undefined));
 }
 
 function onImgDragStart(e: DragEvent, data: TreeNode) {
@@ -183,6 +209,34 @@ onMounted(async () => {
         { id: '23', wzmc: '坦克', type: 'car3' },
         { id: '24', zbmc: '指挥车', type: 'car4' },
         { id: '25', wzmc: '装甲车', type: 'car5' }
+      ]
+    },
+    {
+      id: '3',
+      name: '3队',
+      children: [
+        {
+          id: '33',
+          name: '3-3队',
+          children: [
+            { id: '31', wzmc: '工程1', type: 'car1' },
+            { id: '32', zbmc: '货车', type: 'car2' },
+            { id: '33', wzmc: '坦克', type: 'car3' },
+            { id: '34', zbmc: '指挥车', type: 'car4' },
+            { id: '35', wzmc: '装甲车', type: 'car5' }
+          ]
+        },
+        {
+          id: '43',
+          name: '4-3队',
+          children: [
+            { id: '41', wzmc: '工程1', type: 'car1' },
+            { id: '42', zbmc: '货车', type: 'car2' },
+            { id: '43', wzmc: '坦克', type: 'car3' },
+            { id: '44', zbmc: '指挥车', type: 'car4' },
+            { id: '45', wzmc: '装甲车', type: 'car5' }
+          ]
+        }
       ]
     }
   ];
