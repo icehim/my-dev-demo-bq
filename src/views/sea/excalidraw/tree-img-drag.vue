@@ -18,7 +18,7 @@ type TreeNode = {
   name?: string;
   imgUrl?: string; // 给 <img> 用（string）
   dragFile?: File; // 拖拽用（File）
-  type: string;
+  type?: string;
   wzmc?: string;
   zbmc?: string;
   count?: number;
@@ -83,37 +83,6 @@ function handleSceneChange(payload: {
 }
 
 const treeData = ref<TreeNode[]>([]);
-
-// ✅ 多图片 File 缓存：key 用 imgUrl（打包后的 URL 字符串）
-const fileCache = new Map<string, File>();
-const loading = new Map<string, Promise<void>>();
-
-function absUrl(u: string) {
-  return new URL(u, window.location.href).href;
-}
-
-async function urlToFile(url: string, filename: string) {
-  const res = await fetch(url);
-  const blob = await res.blob();
-  return new File([blob], filename, { type: blob.type || 'image/svg+xml' });
-}
-
-function preloadImgAsFile(imgUrl: string, filenameHint: string) {
-  if (fileCache.has(imgUrl)) return Promise.resolve();
-  if (loading.has(imgUrl)) return loading.get(imgUrl)!;
-
-  const p = (async () => {
-    try {
-      const file = await urlToFile(absUrl(imgUrl), filenameHint);
-      fileCache.set(imgUrl, file);
-    } finally {
-      loading.delete(imgUrl);
-    }
-  })();
-
-  loading.set(imgUrl, p);
-  return p;
-}
 
 function svgTextToDataUrl(svgText: string) {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svgText)}`;
@@ -194,11 +163,28 @@ function onExternalImageDropSuccess(payload: any) {
 
 onMounted(async () => {
   const data = [
-    { id: '1', wzmc: '吊车', type: 'car1' },
-    { id: '2', zbmc: '货车', type: 'car2' },
-    { id: '3', wzmc: '坦克', type: 'car3' },
-    { id: '4', zbmc: '指挥车', type: 'car4' },
-    { id: '5', wzmc: '装甲车', type: 'car5' }
+    {
+      id: '1',
+      name: '装备1队',
+      children: [
+        { id: '1', wzmc: '工程1', type: 'car1' },
+        { id: '2', zbmc: '货车', type: 'car2' },
+        { id: '3', wzmc: '坦克', type: 'car3' },
+        { id: '4', zbmc: '指挥车', type: 'car4' },
+        { id: '5', wzmc: '装甲车', type: 'car5' }
+      ]
+    },
+    {
+      id: '2',
+      name: '装备2队',
+      children: [
+        { id: '21', wzmc: '工程1', type: 'car1' },
+        { id: '22', zbmc: '货车', type: 'car2' },
+        { id: '23', wzmc: '坦克', type: 'car3' },
+        { id: '24', zbmc: '指挥车', type: 'car4' },
+        { id: '25', wzmc: '装甲车', type: 'car5' }
+      ]
+    }
   ];
   // 调接口返回树数据（这里用示例数据）
   treeData.value = normalizeTreeWithLeafCount(data);
@@ -216,10 +202,17 @@ onMounted(async () => {
       :blockContextMenu="true"
       :blockDoubleClick="true"
     />
-    <el-tree :data="treeData" :props="treeProps" class="tree-style">
+    <el-tree
+      :data="treeData"
+      :props="treeProps"
+      class="tree-style"
+      node-key="id"
+      default-expand-all
+    >
       <template #default="{ data }">
         <div class="flex items-center gap-2">
           <img
+            v-if="!data.children && !data.children?.length"
             :src="data.imgUrl"
             draggable="true"
             style="width: 24px; height: 24px; object-fit: contain"
@@ -233,14 +226,6 @@ onMounted(async () => {
 </template>
 
 <style scoped lang="scss">
-:deep(.el-card__header) {
-  padding: 8px 12px;
-}
-
-:deep(.el-card__body) {
-  padding: 8px;
-}
-
 .tree-style {
   position: absolute;
   top: 20px;
