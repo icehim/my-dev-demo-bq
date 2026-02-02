@@ -3,15 +3,20 @@ import ExcalidrawVue from '@/components/ExcalidrawVue';
 import { onMounted, ref } from 'vue';
 import type {
   AppState,
+  BinaryFileData,
   ExcalidrawImperativeAPI
 } from '@excalidraw/excalidraw/types';
-import { NonDeletedExcalidrawElement } from '@excalidraw/excalidraw/element/types';
+import {
+  ExcalidrawElement,
+  NonDeletedExcalidrawElement
+} from '@excalidraw/excalidraw/element/types';
 
 import img_car1 from '@/assets/svg/吊车.svg?raw';
 import img_car2 from '@/assets/svg/货车.svg?raw';
 import img_car3 from '@/assets/svg/坦克.svg?raw';
 import img_car4 from '@/assets/svg/指挥车.svg?raw';
 import img_car5 from '@/assets/svg/装甲车.svg?raw';
+import { equipmentElements, equipmentFiles } from '@/views/sea/excalidraw/data';
 const apiRef = ref<ExcalidrawImperativeAPI | null>(null);
 const treeProps = { children: 'children', label: 'name' };
 const treeData = ref<TreeNode[]>([]);
@@ -22,12 +27,24 @@ function handleSceneChange(payload: {
   files: Record<string, any>;
 }) {
   console.log(payload.elements);
+  console.log(payload.files);
 }
 
 function onApiReady(api: ExcalidrawImperativeAPI) {
   apiRef.value = api;
   console.log('API 就绪', api);
+  mockData();
 }
+
+const mockData = () => {
+  setTimeout(() => {
+    const api = apiRef.value!;
+    api.addFiles(equipmentFiles as unknown as BinaryFileData[]);
+    api.updateScene({
+      elements: equipmentElements as unknown as ExcalidrawElement[]
+    });
+  }, 200);
+};
 
 type TreeNode = {
   id: string;
@@ -241,7 +258,7 @@ onMounted(async () => {
     }
   ];
   // 调接口返回树数据（这里用示例数据）
-  treeData.value = normalizeTreeWithLeafCount(data);
+  treeData.value = normalizeTreeWithLeafCount(data as unknown as any);
 });
 </script>
 
