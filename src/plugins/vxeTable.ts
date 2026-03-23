@@ -10,8 +10,8 @@ import {
   // 全局对象
   VXETable,
   // 表格功能
-  // Filter,
-  // Edit,
+  Filter,
+  Edit,
   // Menu,
   // Export,
   // Keyboard,
@@ -23,7 +23,8 @@ import {
   Grid,
   Pager,
   Select,
-  // Colgroup,
+  Colgroup,
+  VxeInput,
   // Tooltip,
   // Toolbar,
   // Form,
@@ -66,8 +67,8 @@ VXETable.setConfig({
 export function useVxeTable(app: App) {
   // 表格功能
   app
-    // .use(Filter)
-    // .use(Edit)
+    .use(Filter)
+    .use(Edit)
     // .use(Menu)
     // .use(Export)
     // .use(Keyboard)
@@ -79,7 +80,8 @@ export function useVxeTable(app: App) {
     .use(Grid)
     .use(Pager)
     .use(Select)
-    // .use(Colgroup)
+    .use(Colgroup)
+    .use(VxeInput)
     // .use(Tooltip)
     // .use(Toolbar)
     // .use(Form)

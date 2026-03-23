@@ -77,6 +77,14 @@ export default {
       meta: {
         title: '船舶时序播放'
       }
+    },
+    {
+      path: '/sea/vxeEditTable',
+      name: 'vxeEditTable',
+      component: () => import('@/views/sea/vxeEditTable/index.vue'),
+      meta: {
+        title: 'vxe编辑表格'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
