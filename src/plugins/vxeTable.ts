@@ -1,106 +1,193 @@
-import 'vxe-table/lib/style.css';
-// import "xe-utils";
-// import XEUtils from "xe-utils";
+import 'vxe-pc-ui/es/style.css';
+import 'vxe-table/es/style.css';
+import 'vxe-pc-ui/styles/cssvar.scss';
+import 'vxe-table/styles/cssvar.scss';
+import zhCN from 'vxe-pc-ui/lib/language/zh-CN';
+
 import type { App } from 'vue';
-// import { i18n } from "@/plugins/i18n";
-// import zh from "vxe-table/lib/locale/lang/zh-CN";
-// import en from "vxe-table/lib/locale/lang/en-US";
 
 import {
-  // 全局对象
-  VXETable,
-  // 表格功能
-  Filter,
-  Edit,
-  // Menu,
-  // Export,
-  // Keyboard,
-  // Validator,
-  Custom,
-  // 可选组件
-  Icon,
-  Column,
-  Grid,
-  Pager,
-  Select,
-  Colgroup,
+  VxeUI,
+  VxeAlert,
+  VxeAnchor,
+  VxeAnchorLink,
+  VxeAvatar,
+  VxeBadge,
+  VxeBreadcrumb,
+  VxeBreadcrumbItem,
+  VxeButton,
+  VxeButtonGroup,
+  VxeCalendar,
+  VxeCard,
+  VxeCarousel,
+  VxeCarouselItem,
+  VxeCheckbox,
+  VxeCheckboxButton,
+  VxeCheckboxGroup,
+  VxeCol,
+  VxeCollapse,
+  VxeCollapsePane,
+  VxeColorPicker,
+  VxeCountdown,
+  VxeDatePanel,
+  VxeDatePicker,
+  VxeDateRangePicker,
+  VxeDrawer,
+  VxeEmpty,
+  VxeForm,
+  VxeFormGather,
+  VxeFormGroup,
+  VxeFormItem,
+  VxeIcon,
+  VxeIconPicker,
+  VxeImage,
+  VxeImageGroup,
+  VxeImagePreview,
   VxeInput,
-  // Tooltip,
-  // Toolbar,
-  // Form,
-  // FormItem,
-  // FormGather,
-  // Checkbox,
-  // CheckboxGroup,
-  // Radio,
-  // RadioGroup,
-  // RadioButton,
-  // Switch,
-  // Input,
-  // Optgroup,
-  // Option,
-  // Textarea,
-  // Button,
-  // Modal,
-  // List,
-  // Pulldown,
-  // 表格
-  Table
+  VxeLayoutAside,
+  VxeLayoutBody,
+  VxeLayoutContainer,
+  VxeLayoutFooter,
+  VxeLayoutHeader,
+  VxeLink,
+  VxeList,
+  VxeLoading,
+  VxeMenu,
+  VxeModal,
+  VxeNoticeBar,
+  VxeNumberInput,
+  VxeOptgroup,
+  VxeOption,
+  VxePager,
+  VxePasswordInput,
+  VxePrintPageBreak,
+  VxePrint,
+  VxePulldown,
+  VxeRadio,
+  VxeRadioButton,
+  VxeRadioGroup,
+  VxeRate,
+  VxeResult,
+  VxeRow,
+  VxeSelect,
+  VxeSplit,
+  VxeSplitPane,
+  VxeSlider,
+  VxeSteps,
+  VxeSwitch,
+  VxeTabPane,
+  VxeTableSelect,
+  VxeTabs,
+  VxeTag,
+  VxeTextEllipsis,
+  VxeText,
+  VxeTextarea,
+  VxeTip,
+  VxeTooltip,
+  VxeTree,
+  VxeTreeSelect,
+  VxeUpload,
+  VxeWatermark
+} from 'vxe-pc-ui';
+
+import {
+  VxeTable,
+  VxeColumn,
+  VxeColgroup,
+  VxeGrid,
+  VxeToolbar
 } from 'vxe-table';
 
-// 全局默认参数
-VXETable.setConfig({
-  // i18n: (key, args) => {
-  //   return unref(i18n.global.locale) === "zh"
-  //     ? XEUtils.toFormatString(XEUtils.get(zh, key), args)
-  //     : XEUtils.toFormatString(XEUtils.get(en, key), args);
-  // },
-  // translate(key) {
-  //   const NAMESPACED = ["el.", "buttons."];
-  //   if (key && NAMESPACED.findIndex(v => key.includes(v)) !== -1) {
-  //     return i18n.global.t.call(i18n.global.locale, key);
-  //   }
-  //   return key;
-  // }
-});
+VxeUI.setI18n('zh-CN', zhCN);
+VxeUI.setLanguage('zh-CN');
 
-export function useVxeTable(app: App) {
-  // 表格功能
-  app
-    .use(Filter)
-    .use(Edit)
-    // .use(Menu)
-    // .use(Export)
-    // .use(Keyboard)
-    // .use(Validator)
-    .use(Custom)
-    // 可选组件
-    .use(Icon)
-    .use(Column)
-    .use(Grid)
-    .use(Pager)
-    .use(Select)
-    .use(Colgroup)
-    .use(VxeInput)
-    // .use(Tooltip)
-    // .use(Toolbar)
-    // .use(Form)
-    // .use(FormItem)
-    // .use(FormGather)
-    // .use(Checkbox)
-    // .use(CheckboxGroup)
-    // .use(Radio)
-    // .use(RadioGroup)
-    // .use(RadioButton)
-    // .use(Switch)
-    // .use(Input)
-    // .use(Optgroup)
-    // .use(Option)
-    // .use(Textarea)
-    // .use(Button)
-    // .use(Modal)
-    // .use(List)
-    // .use(Pulldown)
-    // 安装表格
-    .use(Table);
+export function lazyVxeUI(app: App) {
+  app.use(VxeAlert);
+  app.use(VxeAnchor);
+  app.use(VxeAnchorLink);
+  app.use(VxeAvatar);
+  app.use(VxeBadge);
+  app.use(VxeBreadcrumb);
+  app.use(VxeBreadcrumbItem);
+  app.use(VxeButton);
+  app.use(VxeButtonGroup);
+  app.use(VxeCalendar);
+  app.use(VxeCard);
+  app.use(VxeCarousel);
+  app.use(VxeCarouselItem);
+  app.use(VxeCheckbox);
+  app.use(VxeCheckboxButton);
+  app.use(VxeCheckboxGroup);
+  app.use(VxeCol);
+  app.use(VxeCollapse);
+  app.use(VxeCollapsePane);
+  app.use(VxeColorPicker);
+  app.use(VxeCountdown);
+  app.use(VxeDatePanel);
+  app.use(VxeDatePicker);
+  app.use(VxeDateRangePicker);
+  app.use(VxeDrawer);
+  app.use(VxeEmpty);
+  app.use(VxeForm);
+  app.use(VxeFormGather);
+  app.use(VxeFormGroup);
+  app.use(VxeFormItem);
+  app.use(VxeIcon);
+  app.use(VxeIconPicker);
+  app.use(VxeImage);
+  app.use(VxeImageGroup);
+  app.use(VxeImagePreview);
+  app.use(VxeInput);
+  app.use(VxeLayoutAside);
+  app.use(VxeLayoutBody);
+  app.use(VxeLayoutContainer);
+  app.use(VxeLayoutFooter);
+  app.use(VxeLayoutHeader);
+  app.use(VxeLink);
+  app.use(VxeList);
+  app.use(VxeLoading);
+  app.use(VxeMenu);
+  app.use(VxeModal);
+  app.use(VxeNoticeBar);
+  app.use(VxeNumberInput);
+  app.use(VxeOptgroup);
+  app.use(VxeOption);
+  app.use(VxePager);
+  app.use(VxePasswordInput);
+  app.use(VxePrintPageBreak);
+  app.use(VxePrint);
+  app.use(VxePulldown);
+  app.use(VxeRadio);
+  app.use(VxeRadioButton);
+  app.use(VxeRadioGroup);
+  app.use(VxeRate);
+  app.use(VxeResult);
+  app.use(VxeRow);
+  app.use(VxeSelect);
+  app.use(VxeSplit);
+  app.use(VxeSplitPane);
+  app.use(VxeSlider);
+  app.use(VxeSteps);
+  app.use(VxeSwitch);
+  app.use(VxeTabPane);
+  app.use(VxeTableSelect);
+  app.use(VxeTabs);
+  app.use(VxeTag);
+  app.use(VxeTextEllipsis);
+  app.use(VxeText);
+  app.use(VxeTextarea);
+  app.use(VxeTip);
+  app.use(VxeTooltip);
+  app.use(VxeTree);
+  app.use(VxeTreeSelect);
+  app.use(VxeUpload);
+  app.use(VxeWatermark);
+}
+
+export function lazyVxeTable(app) {
+  app.use(VxeTable);
+  app.use(VxeColumn);
+  app.use(VxeColgroup);
+  app.use(VxeGrid);
+  app.use(VxeToolbar);
 }

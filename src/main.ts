@@ -64,7 +64,7 @@ app.use(VueTippy);
 
 //全局注册VueKonva
 import VueKonva from 'vue-konva';
-import { useVxeTable } from '@/plugins/vxeTable';
+import { lazyVxeTable, lazyVxeUI } from '@/plugins/vxeTable';
 app.use(VueKonva);
 
 getPlatformConfig(app).then(async config => {
@@ -72,7 +72,12 @@ getPlatformConfig(app).then(async config => {
   app.use(router);
   await router.isReady();
   injectResponsiveStorage(app, config);
-  app.use(MotionPlugin).use(useElementPlus).use(Table).use(useVxeTable);
+  app
+    .use(MotionPlugin)
+    .use(useElementPlus)
+    .use(Table)
+    .use(lazyVxeUI)
+    .use(lazyVxeTable);
   // .use(PureDescriptions)
   // .use(useEcharts);
   app.mount('#app');

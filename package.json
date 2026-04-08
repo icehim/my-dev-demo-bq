@@ -109,7 +109,9 @@
     "vue-types": "6.0.0",
     "vue-virtual-scroller": "2.0.0-beta.8",
     "vuedraggable": "4.1.0",
-    "vxe-table": "4.6.25"
+    "vxe-pc-ui": "4.13.19",
+    "vxe-table": "4.18.10",
+    "xe-utils": "3.9.1"
   },
   "devDependencies": {
     "@commitlint/cli": "19.8.1",
