@@ -1,9 +1,10 @@
 <script setup>
 import { ref } from 'vue';
-import InfiniteLoading from '@/views/sea/waterfall/InfiniteLoading.vue';
+// import InfiniteLoading from '@/views/sea/waterfall/InfiniteLoading.vue';
+import InfiniteLoading from 'v3-infinite-loading';
 
-let comments = ref([]);
-let testNumber = ref(1);
+const comments = ref([]);
+const testNumber = ref(1);
 let page = 1;
 const load = async $state => {
   console.log('loading...');
@@ -22,25 +23,39 @@ const load = async $state => {
     $state.error();
   }
 };
+const test = () => {
+  testNumber.value = 10;
+};
 </script>
 <template>
-  <div>
-    <input v-model="testNumber" type="number" />
+  <div class="w-full h-full">
+    <div class="text-center mb-[20px]">
+      <el-button type="primary" @click="test">测试</el-button>
+      <input v-model="testNumber" type="number" />
+    </div>
+    <div>
+      <div v-for="comment in comments" :key="comment.id" class="result">
+        <div>{{ comment.email }}</div>
+        <div>{{ comment.id }}</div>
+      </div>
+      <InfiniteLoading :identifier="testNumber" @infinite="load" />
+    </div>
   </div>
-  <div v-for="comment in comments" :key="comment.id" class="result">
-    <div>{{ comment.email }}</div>
-    <div>{{ comment.id }}</div>
-  </div>
-  <InfiniteLoading :identifier="testNumber" @infinite="load" />
 </template>
 <style>
-#app {
-  margin-top: 60px;
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  color: #2c3e50;
-  text-align: center;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+.bottom-results {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 500px;
+  max-width: 90vw;
+  height: 500px;
+  max-height: 600px;
+  padding: 10px;
+  margin: 0 auto;
+  overflow-y: scroll;
+  background: #333536;
+  border-radius: 10px;
 }
 
 .result {
