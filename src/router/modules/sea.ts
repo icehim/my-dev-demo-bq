@@ -85,6 +85,22 @@ export default {
       meta: {
         title: 'vxe编辑表格'
       }
+    },
+    {
+      path: '/sea/uiDesign',
+      name: 'uiDesign',
+      component: () => import('@/views/sea/uiDesign/index.vue'),
+      meta: {
+        title: '设计稿组件'
+      }
+    },
+    {
+      path: '/sea/waterfall',
+      name: 'waterfall',
+      component: () => import('@/views/sea/waterfall/index.vue'),
+      meta: {
+        title: '瀑布流'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
