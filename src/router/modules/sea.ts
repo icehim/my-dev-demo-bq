@@ -97,7 +97,7 @@ export default {
     {
       path: '/sea/waterfall',
       name: 'waterfall',
-      component: () => import('@/views/sea/waterfall/index1.vue'),
+      component: () => import('@/views/sea/waterfall/index3.vue'),
       meta: {
         title: '瀑布流'
       }
