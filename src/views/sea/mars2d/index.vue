@@ -298,6 +298,10 @@ async function initFleetFromGeojson(fcAny: any) {
     }
   });
 
+  controller.onPlayerEnd(player => {
+    console.log('单艘船播放结束：', player);
+  });
+
   inited = true;
 }
 

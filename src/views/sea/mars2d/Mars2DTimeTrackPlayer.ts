@@ -391,6 +391,16 @@ export class Mars2DTimeTrackPlayer extends Emitter {
   }
 
   /**
+   * 获取当前船只自身轨迹结束时间
+   * ------------------------------------------------------------
+   * 用于 FleetTimelineController 判断：
+   * - 某一艘船是否已经播放到自己的结束时间
+   */
+  getEndTime(): number {
+    return this.endTime;
+  }
+
+  /**
    * 核心：给定时间 t，通过插值计算当前位置，并更新图形
    */
   private applyTime(t: number) {

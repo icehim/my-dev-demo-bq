@@ -93,6 +93,22 @@ export class FleetTimelineController {
    */
   private onTimeCallbacks: Set<(t: number) => void> = new Set();
 
+  /**
+   * 单艘船播放结束监听器集合
+   * 用于：
+   * - 某一艘船第一次播放到自身结束时间时触发
+   * - 不等全部船只播放完
+   * - 不会每一帧重复触发
+   */
+  private onPlayerEndCallbacks: Set<(player: Mars2DTimeTrackPlayer) => void> =
+    new Set();
+
+  /**
+   * 已经触发过“单艘船播放结束”的船只集合
+   * 用于防止同一艘船结束后，每一帧都重复触发结束事件
+   */
+  private finishedPlayerSet: Set<Mars2DTimeTrackPlayer> = new Set();
+
   constructor(options: FleetTimelineOptions) {
     this.startTime = options.startTime;
     this.endTime = options.endTime;
@@ -103,7 +119,7 @@ export class FleetTimelineController {
     this.currentTime = this.startTime;
 
     // 初始化所有船只到起始时间
-    this.players.forEach(p => p.setGlobalTime(this.currentTime));
+    this.updatePlayersByTime(this.currentTime);
   }
 
   /**
@@ -154,9 +170,15 @@ export class FleetTimelineController {
     const tt = Math.max(this.startTime, Math.min(this.endTime, t));
     this.currentTime = tt;
 
-    // 驱动所有船只更新位置
-    this.players.forEach(p => p.setGlobalTime(tt));
-
+    /**
+     * seek 后清空单船结束记录
+     * --------------------------------------------------------
+     * 作用：
+     * - 用户把时间轴拖回前面后
+     * - 再次播放到某艘船的结束时间
+     * - 允许重新触发该船的结束事件
+     */
+    this.updatePlayersByTime(tt);
     // 通知 UI（slider / 时间显示）
     this.emitTime();
   }
@@ -187,9 +209,69 @@ export class FleetTimelineController {
     this.onTimeCallbacks.delete(cb);
   }
 
+  /**
+   * 注册单艘船播放结束监听
+   * ----------------------------------------------------------
+   * 触发时机：
+   * - 某一艘船第一次到达自身结束时间
+   *
+   * 注意：
+   * - 不是每一帧触发
+   * - 不是全部船只播放完成后触发
+   * - 不会影响全局时间轴继续播放
+   */
+  onPlayerEnd(cb: (player: Mars2DTimeTrackPlayer) => void) {
+    this.onPlayerEndCallbacks.add(cb);
+  }
+
+  /** 移除单艘船播放结束监听 */
+  offPlayerEnd(cb: (player: Mars2DTimeTrackPlayer) => void) {
+    this.onPlayerEndCallbacks.delete(cb);
+  }
+
   /** 触发所有时间监听 */
   private emitTime() {
     this.onTimeCallbacks.forEach(cb => cb(this.currentTime));
+  }
+
+  /** 触发单艘船播放结束监听 */
+  private emitPlayerEnd(player: Mars2DTimeTrackPlayer) {
+    this.onPlayerEndCallbacks.forEach(cb => cb(player));
+  }
+
+  /**
+   * 根据全局时间更新所有船只
+   * ----------------------------------------------------------
+   * 这里统一做两件事：
+   * 1. 调用每艘船的 setGlobalTime(t)，保持原有位置更新逻辑
+   * 2. 判断每艘船是否第一次播放到自身结束时间
+   */
+  private updatePlayersByTime(t: number) {
+    this.players.forEach(player => {
+      player.setGlobalTime(t);
+
+      const endTime = player.getEndTime?.();
+
+      if (typeof endTime !== 'number') return;
+
+      /**
+       * 如果当前时间小于该船结束时间
+       * 说明时间轴已经回到这艘船结束之前
+       * 此时允许它之后再次触发结束事件
+       */
+      if (t < endTime) {
+        this.finishedPlayerSet.delete(player);
+        return;
+      }
+
+      /**
+       * 当前时间第一次到达或超过该船结束时间时触发
+       */
+      if (!this.finishedPlayerSet.has(player)) {
+        this.finishedPlayerSet.add(player);
+        this.emitPlayerEnd(player);
+      }
+    });
   }
 
   /**
@@ -212,14 +294,14 @@ export class FleetTimelineController {
     // 到达终点：自动停
     if (this.currentTime >= this.endTime) {
       this.currentTime = this.endTime;
-      this.players.forEach(p => p.setGlobalTime(this.currentTime));
+      this.updatePlayersByTime(this.currentTime);
       this.emitTime();
       this.pause();
       return;
     }
 
     // 正常推进
-    this.players.forEach(p => p.setGlobalTime(this.currentTime));
+    this.updatePlayersByTime(this.currentTime);
     this.emitTime();
 
     this.rafId = requestAnimationFrame(this.loop);
