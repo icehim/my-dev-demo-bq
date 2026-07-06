@@ -347,7 +347,14 @@ onMounted(async () => {
   map = new mars2d.Map('mars2dContainer', {
     zoom: 6,
     center: { lng: 131.085263, lat: 33.30635 },
-    basemaps: [{ name: '高德地图', type: 'gaode', layer: 'vec', show: true }]
+    basemaps: [
+      {
+        pid: 1,
+        name: '内网天地图-底图',
+        type: 'xyz',
+        url: import.meta.env.VITE_API_WAPIAN_URL
+      }
+    ]
   });
 
   // 2) 初始化船队（本地 mock；后续替换后端返回）

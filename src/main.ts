@@ -10,6 +10,7 @@ import { injectResponsiveStorage } from '@/utils/responsive';
 
 import Table from '@pureadmin/table';
 // import PureDescriptions from "@pureadmin/descriptions";
+import vue3TreeOrg from 'vue3-tree-org';
 
 // 引入重置样式
 import './style/reset.scss';
@@ -24,6 +25,7 @@ import './assets/iconfont/iconfont.css';
 
 import 'leaflet/dist/leaflet.css';
 import 'mars2d/mars2d.css';
+import 'vue3-tree-org/lib/vue3-tree-org.css';
 
 import { createRoot } from 'react-dom/client';
 import { setVeauryOptions } from 'veaury';
@@ -77,7 +79,8 @@ getPlatformConfig(app).then(async config => {
     .use(useElementPlus)
     .use(Table)
     .use(lazyVxeUI)
-    .use(lazyVxeTable);
+    .use(lazyVxeTable)
+    .use(vue3TreeOrg);
   // .use(PureDescriptions)
   // .use(useEcharts);
   app.mount('#app');

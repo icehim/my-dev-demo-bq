@@ -101,6 +101,30 @@ export default {
       meta: {
         title: '瀑布流'
       }
+    },
+    {
+      path: '/sea/vue-tree-org',
+      name: 'waterfall',
+      component: () => import('@/views/sea/vue-tree-org/index.vue'),
+      meta: {
+        title: '组织架构树'
+      }
+    },
+    {
+      path: '/sea/select-link',
+      name: 'selectLink',
+      component: () => import('@/views/sea/selectLinked/index.vue'),
+      meta: {
+        title: '下拉联动'
+      }
+    },
+    {
+      path: '/sea/demo',
+      name: 'demo',
+      component: () => import('@/views/sea/tmp/index.vue'),
+      meta: {
+        title: 'demo'
+      }
     }
   ]
 } satisfies RouteConfigsTable;
